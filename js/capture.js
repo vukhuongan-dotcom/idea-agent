@@ -423,8 +423,8 @@ var Capture = {
     if (!idea) return;
 
     const settings = Store.getSettings();
-    if (!settings.geminiApiKey && !GoogleAuth.isSignedIn) {
-      Utils.showToast('Vui lòng đăng nhập Google hoặc nhập API Key trong Settings', 'error');
+    if (!settings.geminiApiKey) {
+      Utils.showToast('Vui lòng nhập API Key trong Cài đặt', 'error');
       App.navigate('settings');
       return;
     }

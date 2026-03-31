@@ -133,45 +133,20 @@ Viết bằng tiếng Việt, format Markdown. Rõ ràng, actionable, có timeli
     return await this.callGemini(prompt, settings);
   },
 
-  // Call Gemini API — supports OAuth2 (primary) + API Key (fallback)
+  // Call Gemini API using API Key
   async callGemini(prompt, settings) {
     const model = settings.geminiModel || 'gemini-2.5-flash';
-
-    // Determine auth method: OAuth token first, then API key
-    let token = GoogleAuth.getToken();
     const apiKey = settings.geminiApiKey;
 
-    if (!token && !apiKey) {
-      throw new Error('Vui lòng đăng nhập Google hoặc nhập API Key trong Settings.');
+    if (!apiKey) {
+      throw new Error('Vui lòng nhập API Key trong Cài đặt → 🔑 API Key');
     }
 
-    // If token expired, try silent refresh
-    if (!token && GoogleAuth.isSignedIn) {
-      try {
-        token = await GoogleAuth.refreshToken();
-      } catch (e) {
-        console.warn('Token refresh failed, falling back to API Key');
-      }
-    }
-
-    // Build URL and headers
-    let url, headers;
-    if (token) {
-      // OAuth2: use Bearer token
-      url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-      headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      };
-    } else {
-      // API Key fallback
-      url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      headers = { 'Content-Type': 'application/json' };
-    }
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
-      headers,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{
           parts: [{ text: prompt }]
@@ -187,19 +162,6 @@ Viết bằng tiếng Việt, format Markdown. Rõ ràng, actionable, có timeli
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-
-      // If 401 with OAuth, try refresh token once
-      if (response.status === 401 && token) {
-        console.warn('Token expired, attempting refresh...');
-        try {
-          const newToken = await GoogleAuth.refreshToken();
-          // Retry with new token
-          return await this.callGeminiWithToken(prompt, model, newToken);
-        } catch (e) {
-          throw new Error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-        }
-      }
-
       throw new Error(errData.error?.message || `API Error: ${response.status}`);
     }
 
@@ -212,28 +174,5 @@ Viết bằng tiếng Việt, format Markdown. Rõ ràng, actionable, có timeli
 
     return text;
   },
-
-  // Retry helper with specific token
-  async callGeminiWithToken(prompt, model, token) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.8, topK: 40, topP: 0.95, maxOutputTokens: 4096 }
-      })
-    });
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error?.message || `API Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  },
 };
+
