@@ -5,7 +5,7 @@
 
 var GoogleAuth = {
   CLIENT_ID: '505465715428-qk2pv6elhjblf316j6gbumr5fd9pptcl.apps.googleusercontent.com',
-  SCOPES: 'https://www.googleapis.com/auth/cloud-platform',
+  SCOPES: 'https://www.googleapis.com/auth/generative-language',
 
   tokenClient: null,
   accessToken: null,
