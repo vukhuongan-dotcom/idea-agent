@@ -30,6 +30,9 @@ var App = {
     Capture.initShortcuts();
     this.initGlobalShortcuts();
 
+    // Initialize Google Auth
+    GoogleAuth.init();
+
     // Render sidebar
     this.updateSidebarStats();
     this.updateThemeIcon();
