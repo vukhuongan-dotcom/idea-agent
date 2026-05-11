@@ -3,14 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idea Agent — Ghi nhận & Phát triển Ý tưởng</title>
-    <meta name="description" content="Hệ thống ghi nhận, phân loại và phát triển ý tưởng với AI - Powered by Gemini">
+    <title>Idea Agent — Ghi nhận &amp; Phát triển Ý tưởng</title>
+    <meta name="description" content="Hệ thống ghi nhận, phân loại và phát triển ý tưởng với AI - Powered by DeepSeek">
     <meta name="theme-color" content="#8b5cf6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Open Graph -->
+    <meta property="og:title" content="Idea Agent — Ghi nhận &amp; Phát triển Ý tưởng">
+    <meta property="og:description" content="Hệ thống ghi nhận, phân loại và phát triển ý tưởng với AI">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://vukhuongan-dotcom.github.io/idea-agent/">
+    <!-- Favicon -->
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- CSS -->
     <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/sidebar.css">
@@ -18,93 +29,106 @@
     <link rel="stylesheet" href="css/timeline.css">
     <link rel="stylesheet" href="css/draft.css">
     <link rel="stylesheet" href="css/mobile.css">
+    <!-- Google Identity Services (for sign-in avatar only) -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+    <!-- Skip navigation (accessibility) -->
+    <a href="#main-content" class="skip-link">Bỏ qua điều hướng</a>
+
     <div id="app">
         <!-- Mobile Header -->
         <div class="mobile-header" id="mobile-header">
             <div class="mobile-header-left">
-                <button class="mobile-menu-btn" onclick="App.toggleSidebar()">☰</button>
+                <button class="mobile-menu-btn"
+                    aria-label="Mở menu điều hướng"
+                    aria-expanded="false"
+                    aria-controls="sidebar"
+                    id="mobile-menu-btn"
+                    onclick="App.toggleSidebar()">☰</button>
                 <span class="mobile-header-title">💡 Idea Agent</span>
             </div>
             <div>
-                <button class="btn btn-icon btn-ghost" onclick="App.toggleTheme()" id="mobile-theme-btn">🌙</button>
+                <button class="btn btn-icon btn-ghost"
+                    aria-label="Đổi giao diện sáng/tối"
+                    onclick="App.toggleTheme()"
+                    id="mobile-theme-btn">🌙</button>
             </div>
         </div>
 
         <!-- Sidebar Overlay (mobile) -->
-        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        <div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true"></div>
 
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
+        <aside class="sidebar" id="sidebar" aria-label="Điều hướng chính">
             <div class="sidebar-logo">
-                <div class="logo-icon">💡</div>
+                <div class="logo-icon" aria-hidden="true">💡</div>
                 <div class="logo-text">
                     <span class="logo-title">Idea Agent</span>
-                    <span class="logo-subtitle">Ghi nhận & Phát triển ý tưởng</span>
+                    <span class="logo-subtitle">Ghi nhận &amp; Phát triển ý tưởng</span>
                 </div>
             </div>
 
-            <nav class="sidebar-nav">
-                <div class="nav-section-title">CHÍNH</div>
-                <a href="#capture" class="nav-item active" data-page="capture" onclick="App.closeSidebar()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            <nav class="sidebar-nav" aria-label="Menu chính">
+                <div class="nav-section-title" aria-hidden="true">CHÍNH</div>
+                <a href="#capture" class="nav-item active" data-page="capture"
+                    aria-current="page" onclick="App.closeSidebar()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                     <span>Ghi nhận</span>
                 </a>
                 <a href="#timeline" class="nav-item" data-page="timeline" onclick="App.closeSidebar()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     <span>Timeline</span>
-                    <span class="nav-badge" id="nav-timeline-badge" style="display:none">0</span>
+                    <span class="nav-badge" id="nav-timeline-badge" aria-label="số ý tưởng" style="display:none">0</span>
                 </a>
 
-                <div class="nav-section-title" style="margin-top: var(--space-md)">PHÂN TÍCH</div>
+                <div class="nav-section-title" style="margin-top: var(--space-md)" aria-hidden="true">PHÂN TÍCH</div>
                 <a href="#analytics" class="nav-item" data-page="analytics" onclick="App.closeSidebar()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                     <span>Phân tích</span>
                 </a>
 
-                <div class="nav-section-title" style="margin-top: var(--space-md)">HỆ THỐNG</div>
+                <div class="nav-section-title" style="margin-top: var(--space-md)" aria-hidden="true">HỆ THỐNG</div>
                 <a href="#settings" class="nav-item" data-page="settings" onclick="App.closeSidebar()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
                     <span>Cài đặt</span>
                 </a>
             </nav>
 
             <div class="sidebar-footer">
                 <div id="sidebar-user">
-                    <button class="google-signin-btn" onclick="GoogleAuth.signIn()">
-                        <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                    <button class="google-signin-btn" aria-label="Đăng nhập Google để hiển thị avatar" onclick="GoogleAuth.signIn()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
                         Đăng nhập Google
                     </button>
                 </div>
                 <div class="sidebar-footer-content">
-                    <div class="sidebar-stats" id="sidebar-stats">
+                    <div class="sidebar-stats" id="sidebar-stats" aria-live="polite">
                         <div class="sidebar-stat">💡 <strong>0</strong> ý tưởng</div>
                         <div class="sidebar-stat">📝 <strong>0</strong> bản thảo</div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 6px">
-                        <span class="ai-status disconnected" id="ai-status-badge">🔴 Chưa đăng nhập</span>
-                        <button class="theme-toggle" id="theme-toggle-btn" onclick="App.toggleTheme()" title="Đổi theme">
-                            🌙
-                        </button>
+                        <span class="ai-status disconnected" id="ai-status-badge" aria-live="polite">🔴 Chưa có API Key</span>
+                        <button class="theme-toggle" id="theme-toggle-btn"
+                            aria-label="Đổi giao diện sáng/tối"
+                            onclick="App.toggleTheme()">🌙</button>
                     </div>
                 </div>
             </div>
         </aside>
 
         <!-- Main Content -->
-        <main class="main-content" id="main-content">
+        <main class="main-content" id="main-content" aria-live="polite">
             <!-- Pages rendered here by JS -->
         </main>
     </div>
 
     <!-- Modal Container -->
-    <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
         <div class="modal" id="modal">
             <div class="modal-header">
                 <h3 class="modal-title" id="modal-title"></h3>
-                <button class="modal-close" id="modal-close" onclick="App.closeModal()">&times;</button>
+                <button class="modal-close" id="modal-close" aria-label="Đóng cửa sổ" onclick="App.closeModal()">&times;</button>
             </div>
             <div class="modal-body" id="modal-body"></div>
         </div>
@@ -114,7 +138,7 @@
     <script src="js/store.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/gemini.js"></script>
+    <script src="js/ai.js"></script>
     <script src="js/capture.js"></script>
     <script src="js/timeline.js"></script>
     <script src="js/draft.js"></script>

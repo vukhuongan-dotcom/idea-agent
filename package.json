@@ -1,0 +1,13 @@
+{
+  "name": "idea-agent",
+  "version": "1.1.0",
+  "description": "Idea capture and development system powered by DeepSeek AI",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "npx serve . -p 3000"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.0",
+    "clean-css": "^5.3.3"
+  }
+}

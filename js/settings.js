@@ -29,20 +29,24 @@ var Settings = {
       </div>
 
       <div class="settings-section animate-slide-up" style="animation-delay: 0.05s">
-        <h2>🤖 Gemini AI</h2>
+        <h2>🤖 DeepSeek AI</h2>
 
         <div class="settings-row">
           <div style="flex: 1">
             <div class="settings-row-label">🔑 API Key</div>
-            <div class="settings-row-desc">Lấy API key miễn phí từ <a href="https://aistudio.google.com/apikey" target="_blank" style="color: var(--primary)">Google AI Studio</a> — dùng cùng AI Gemini</div>
+            <div class="settings-row-desc">Lấy API key từ <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener" style="color: var(--primary)">DeepSeek Platform</a></div>
           </div>
         </div>
         <div style="display: flex; gap: var(--space-sm); margin-top: var(--space-sm)">
           <input type="password" class="form-input" id="settings-api-key"
             value="${settings.geminiApiKey || ''}"
-            placeholder="AIza...">
-          <button class="btn btn-secondary" onclick="Settings.toggleApiKeyVisibility()">👁️</button>
+            placeholder="sk-..."
+            aria-label="DeepSeek API Key">
+          <button class="btn btn-secondary" aria-label="Hiện/ẩn API Key" onclick="Settings.toggleApiKeyVisibility()">👁️</button>
           <button class="btn btn-primary" onclick="Settings.saveApiKey()">Lưu</button>
+        </div>
+        <div style="margin-top: var(--space-xs); font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px">
+          🔒 Key lưu trên thiết bị này (localStorage). Không dùng trên máy tính chung.
         </div>
 
         <div class="settings-row" style="margin-top: var(--space-md); padding: var(--space-sm) var(--space-md); background: var(--bg-tertiary); border-radius: var(--radius-md)">
@@ -65,11 +69,10 @@ var Settings = {
             <div class="settings-row-label">Model</div>
             <div class="settings-row-desc">Model AI sử dụng để tạo bản thảo</div>
           </div>
-          <select class="form-select" id="settings-model" style="width: 220px"
+          <select class="form-select" id="settings-model" style="width: 240px"
             onchange="Settings.saveModel(this.value)">
-            <option value="gemini-2.5-flash" ${settings.geminiModel === 'gemini-2.5-flash' ? 'selected' : ''}>Gemini 2.5 Flash</option>
-            <option value="gemini-2.5-pro" ${settings.geminiModel === 'gemini-2.5-pro' ? 'selected' : ''}>Gemini 2.5 Pro</option>
-            <option value="gemini-2.0-flash" ${settings.geminiModel === 'gemini-2.0-flash' ? 'selected' : ''}>Gemini 2.0 Flash</option>
+            <option value="deepseek-chat" ${(settings.geminiModel === 'deepseek-chat' || !settings.geminiModel) ? 'selected' : ''}>DeepSeek V3 (nhanh)</option>
+            <option value="deepseek-reasoner" ${settings.geminiModel === 'deepseek-reasoner' ? 'selected' : ''}>DeepSeek R1 (suy luận sâu)</option>
           </select>
         </div>
         <div class="settings-row">
@@ -145,9 +148,9 @@ var Settings = {
       <div class="settings-section animate-slide-up" style="animation-delay: 0.2s">
         <h2>ℹ️ Thông tin</h2>
         <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.8">
-          <strong>Idea Agent</strong> v1.0<br>
+          <strong>Idea Agent</strong> v1.1<br>
           Hệ thống ghi nhận & phát triển ý tưởng<br>
-          Powered by Gemini AI · Built with ❤️ for BS. Vũ Khương An<br>
+          Powered by DeepSeek AI · Built with ❤️ for BS. Vũ Khương An<br>
           <span style="color: var(--text-muted)">Dữ liệu lưu trữ tại localStorage trên trình duyệt này</span>
         </div>
       </div>
@@ -166,7 +169,7 @@ var Settings = {
   },
 
   // ========================
-  // GEMINI API
+  // AI API
   // ========================
 
   saveApiKey() {
@@ -175,6 +178,7 @@ var Settings = {
     const key = input.value.trim();
     Store.updateSettings({ geminiApiKey: key });
     Utils.showToast(key ? '✅ API Key đã lưu' : '⚠️ API Key đã xóa', key ? 'success' : 'info');
+    App.updateAIStatusBadge();
   },
 
   toggleApiKeyVisibility() {
@@ -200,7 +204,7 @@ var Settings = {
     Utils.showToast('🧪 Đang kiểm tra kết nối AI...', 'info');
 
     try {
-      const result = await GeminiAI.callGemini('Trả lời ngắn gọn bằng tiếng Việt: Xin chào, tôi là Idea Agent', settings);
+      const result = await AI.call('Trả lời ngắn gọn bằng tiếng Việt: Xin chào, bạn là AI gì?', settings);
       Utils.showToast('✅ Kết nối thành công! ' + result.substring(0, 80), 'success');
     } catch (err) {
       Utils.showToast('❌ Lỗi: ' + err.message, 'error');
