@@ -27,6 +27,10 @@ var App = {
     Capture.initShortcuts();
     this.initGlobalShortcuts();
 
+    // 2.3: Tạo một lần tham chiếu handler để tránh rò rỉ listener
+    this._boundTrap = (e) => this._trapFocus(e);
+    this._savedScrollTop = 0;
+
     GoogleAuth.init();
 
     this.updateSidebarStats();
@@ -41,11 +45,13 @@ var App = {
       const ideaId = hash.replace('draft/', '');
       this.currentPage = 'draft';
       this.currentDraftId = ideaId;
+      document.body.classList.add('page-draft');
       this.renderPage();
       this.updateActiveNav('timeline');
       return;
     }
 
+    document.body.classList.remove('page-draft');
     if (this.pages[hash]) {
       this.currentPage = hash;
       this.currentDraftId = null;
@@ -98,7 +104,7 @@ var App = {
   },
 
   updateActiveNav(page) {
-    document.querySelectorAll('.nav-item').forEach(el => {
+    document.querySelectorAll('.nav-item, .bottom-nav-item').forEach(el => {
       const isActive = el.dataset.page === page;
       el.classList.toggle('active', isActive);
       // Accessibility: aria-current
@@ -163,7 +169,7 @@ var App = {
     this.updateThemeIcon();
   },
 
-  // Modal management with focus trap
+  // Modal management with focus trap & scroll lock
   openModal(title, bodyHTML, triggerEl) {
     const overlay = document.getElementById('modal-overlay');
     const modalTitle = document.getElementById('modal-title');
@@ -174,6 +180,13 @@ var App = {
     if (modalTitle) modalTitle.textContent = title;
     if (modalBody) modalBody.innerHTML = bodyHTML;
 
+    // 2.3: Scroll-lock cho body (tránh nền cuộn xuyên qua trên iOS/Mobile)
+    this._savedScrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${this._savedScrollTop}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+
     overlay.classList.add('active');
     overlay.setAttribute('aria-hidden', 'false');
 
@@ -183,8 +196,11 @@ var App = {
       focusable[0]?.focus();
     }, 50);
 
-    // Focus trap
-    overlay.addEventListener('keydown', this._trapFocus.bind(this));
+    // Focus trap dùng đúng tham chiếu cố định
+    if (this._boundTrap) {
+      overlay.removeEventListener('keydown', this._boundTrap);
+      overlay.addEventListener('keydown', this._boundTrap);
+    }
   },
 
   closeModal() {
@@ -192,8 +208,18 @@ var App = {
     if (overlay) {
       overlay.classList.remove('active');
       overlay.setAttribute('aria-hidden', 'true');
-      overlay.removeEventListener('keydown', this._trapFocus.bind(this));
+      if (this._boundTrap) {
+        overlay.removeEventListener('keydown', this._boundTrap);
+      }
     }
+
+    // 2.3: Gỡ scroll-lock và khôi phục vị trí cuộn
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    document.body.style.overflow = '';
+    window.scrollTo(0, this._savedScrollTop || 0);
+
     // Return focus to trigger
     this._lastFocusedEl?.focus();
     this._lastFocusedEl = null;
@@ -260,6 +286,13 @@ var App = {
     document.getElementById('sidebar-overlay')?.addEventListener('click', () => {
       this.closeSidebar();
     });
+
+    // PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
   },
 };
 

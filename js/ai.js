@@ -121,10 +121,31 @@ Viết tiếng Việt, format Markdown, có timeline cụ thể.`;
   // Core API call — DeepSeek (OpenAI-compatible)
   async call(prompt, settings) {
     const apiKey = settings.geminiApiKey;
-    const model = settings.geminiModel || 'deepseek-chat';
+    const validModels = ['deepseek-chat', 'deepseek-reasoner'];
+    const model = validModels.includes(settings.geminiModel) ? settings.geminiModel : 'deepseek-chat';
 
     if (!apiKey) {
       throw new Error('Vui lòng nhập DeepSeek API Key trong Cài đặt');
+    }
+
+    const requestBody = {
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: 'Bạn là trợ lý AI thông minh chuyên phát triển ý tưởng và tạo bản thảo chuyên nghiệp. Luôn trả lời bằng tiếng Việt, format Markdown.'
+        },
+        { role: 'user', content: prompt }
+      ],
+      stream: false,
+    };
+
+    // DeepSeek Reasoner (R1) không nhận custom temperature và cần trần token cao hơn cho reasoning
+    if (model === 'deepseek-reasoner') {
+      requestBody.max_tokens = 8192;
+    } else {
+      requestBody.temperature = 0.8;
+      requestBody.max_tokens = 4096;
     }
 
     const response = await fetch('https://api.deepseek.com/chat/completions', {
@@ -133,19 +154,7 @@ Viết tiếng Việt, format Markdown, có timeline cụ thể.`;
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: 'system',
-            content: 'Bạn là trợ lý AI thông minh chuyên phát triển ý tưởng và tạo bản thảo chuyên nghiệp. Luôn trả lời bằng tiếng Việt, format Markdown.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.8,
-        max_tokens: 4096,
-        stream: false,
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {

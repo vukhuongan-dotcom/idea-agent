@@ -83,7 +83,7 @@ var Draft = {
         <div class="draft-panel-header">
           <div class="draft-panel-title">
             📝 Bản thảo
-            <span class="ai-badge">🤖 Gemini AI</span>
+            <span class="ai-badge">🤖 DeepSeek AI</span>
           </div>
           <div class="draft-actions-top">
             ${hasDrafts ? `
@@ -243,7 +243,7 @@ var Draft = {
     Utils.showToast('🤖 Đang xử lý...', 'info', 5000);
 
     try {
-      const result = await GeminiAI.processAction(action, idea, settings);
+      const result = await AI.processAction(action, idea, settings);
       if (result) {
         Store.addDraft(ideaId, result);
         Utils.showToast('✅ Hoàn thành!', 'success');

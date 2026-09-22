@@ -16,7 +16,6 @@ var GoogleAuth = {
   init() {
     // Wait for GIS library to load
     if (typeof google === 'undefined' || !google.accounts) {
-      console.log('⏳ Waiting for Google Identity Services...');
       setTimeout(() => this.init(), 500);
       return;
     }
@@ -36,8 +35,6 @@ var GoogleAuth = {
       this.isSignedIn = true;
       this.fetchUserInfo(savedToken);
     }
-
-    console.log('🔐 Google Auth initialized');
   },
 
   // Sign in
@@ -60,9 +57,7 @@ var GoogleAuth = {
   // Sign out
   signOut() {
     if (this.accessToken) {
-      google.accounts.oauth2.revoke(this.accessToken, () => {
-        console.log('Token revoked');
-      });
+      google.accounts.oauth2.revoke(this.accessToken, () => {});
     }
 
     this.accessToken = null;

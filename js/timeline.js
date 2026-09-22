@@ -44,34 +44,41 @@ var Timeline = {
       ...Object.entries(Utils.priorities).map(([k, v]) => ({ key: k, label: `${v.icon} ${v.label}` }))
     ];
 
+    const hasFilters = this.filters.category !== 'all' || this.filters.priority !== 'all' || this.filters.search || (this.filters.status && this.filters.status !== 'all');
+
     return `
       <div class="timeline-filters">
-        <div class="filter-search-wrapper">
-          ${Utils.icon('search', 14)}
-          <input type="text" class="filter-search" id="timeline-search"
-            placeholder="Tìm ý tưởng..."
-            value="${Utils.escapeHtml(this.filters.search)}"
-            oninput="Timeline.onSearch(this.value)">
+        <div class="timeline-filters-top">
+          <div class="filter-search-wrapper">
+            ${Utils.icon('search', 14)}
+            <input type="text" class="filter-search" id="timeline-search"
+              placeholder="Tìm ý tưởng..."
+              value="${Utils.escapeHtml(this.filters.search)}"
+              oninput="Timeline.onSearch(this.value)">
+          </div>
+          <button class="filter-clear-btn ${hasFilters ? 'active' : ''}" onclick="Timeline.clearFilters()" title="Xóa tất cả bộ lọc">
+            ✕ Xóa bộ lọc
+          </button>
         </div>
 
-        <div class="filter-divider"></div>
+        <div class="timeline-filters-scroll">
+          <div class="filter-group">
+            <span class="filter-label">Danh mục:</span>
+            ${categories.map(c => `
+              <span class="filter-chip ${this.filters.category === c.key ? 'active' : ''}"
+                onclick="Timeline.setFilter('category', '${c.key}')">${c.label}</span>
+            `).join('')}
+          </div>
 
-        <div class="filter-group">
-          <span class="filter-label">Danh mục:</span>
-          ${categories.map(c => `
-            <span class="filter-chip ${this.filters.category === c.key ? 'active' : ''}"
-              onclick="Timeline.setFilter('category', '${c.key}')">${c.label}</span>
-          `).join('')}
-        </div>
+          <div class="filter-divider"></div>
 
-        <div class="filter-divider"></div>
-
-        <div class="filter-group">
-          <span class="filter-label">Ưu tiên:</span>
-          ${priorities.map(p => `
-            <span class="filter-chip ${this.filters.priority === p.key ? 'active' : ''}"
-              onclick="Timeline.setFilter('priority', '${p.key}')">${p.label}</span>
-          `).join('')}
+          <div class="filter-group">
+            <span class="filter-label">Ưu tiên:</span>
+            ${priorities.map(p => `
+              <span class="filter-chip ${this.filters.priority === p.key ? 'active' : ''}"
+                onclick="Timeline.setFilter('priority', '${p.key}')">${p.label}</span>
+            `).join('')}
+          </div>
         </div>
       </div>
     `;
@@ -194,6 +201,18 @@ var Timeline = {
 
   setFilter(key, value) {
     this.filters[key] = value;
+    this.refresh();
+  },
+
+  clearFilters() {
+    this.filters = {
+      category: 'all',
+      priority: 'all',
+      status: 'all',
+      tag: '',
+      search: '',
+      sort: 'newest',
+    };
     this.refresh();
   },
 

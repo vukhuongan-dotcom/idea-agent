@@ -7,8 +7,8 @@
 .capture-hero {
   background: linear-gradient(135deg, var(--primary-dark), var(--primary), #a78bfa);
   border-radius: var(--radius-xl);
-  padding: var(--space-2xl) var(--space-xl);
-  margin-bottom: var(--space-xl);
+  padding: 12px 18px;
+  margin-bottom: var(--space-md);
   position: relative;
   overflow: hidden;
 }
@@ -42,14 +42,8 @@
 
 .capture-hero h1 {
   color: white;
-  font-size: 1.5rem;
-  margin-bottom: var(--space-xs);
-}
-
-.capture-hero p {
-  color: rgba(255,255,255,0.75);
-  font-size: 0.9rem;
-  margin-bottom: var(--space-lg);
+  font-size: 1.15rem;
+  margin-bottom: 6px;
 }
 
 /* Quick capture input */
@@ -61,24 +55,25 @@
 
 .quick-capture-input {
   flex: 1;
-  padding: 14px 18px;
+  padding: 10px 14px;
   background: rgba(255,255,255,0.15);
   backdrop-filter: blur(10px);
   border: 1.5px solid rgba(255,255,255,0.25);
   border-radius: var(--radius-lg);
   font-family: inherit;
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: white;
   outline: none;
   resize: none;
-  min-height: 52px;
+  min-height: 44px;
   max-height: 120px;
-  line-height: 1.5;
+  line-height: 1.4;
+  box-sizing: border-box;
   transition: all var(--transition-fast);
 }
 
 .quick-capture-input::placeholder {
-  color: rgba(255,255,255,0.5);
+  color: rgba(255,255,255,0.6);
 }
 
 .quick-capture-input:focus {
@@ -88,13 +83,14 @@
 }
 
 .quick-capture-btn {
-  padding: 14px 24px;
+  padding: 10px 20px;
+  min-height: 44px;
   background: white;
   color: var(--primary-dark);
   border: none;
   border-radius: var(--radius-lg);
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -103,6 +99,7 @@
   transition: all var(--transition-fast);
   white-space: nowrap;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .quick-capture-btn:hover {
@@ -118,9 +115,9 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  margin-top: var(--space-sm);
-  font-size: 0.75rem;
-  color: rgba(255,255,255,0.5);
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.7);
 }
 
 .quick-capture-hint kbd {
@@ -158,7 +155,9 @@
 }
 
 .category-option {
-  padding: 8px 16px;
+  padding: 10px 18px;
+  min-height: 44px;
+  box-sizing: border-box;
   border-radius: var(--radius-full);
   border: 1.5px solid var(--border-default);
   background: var(--bg-input);
@@ -166,7 +165,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   color: var(--text-secondary);
@@ -197,7 +196,9 @@
 
 .priority-option {
   flex: 1;
-  padding: 8px 12px;
+  padding: 10px 14px;
+  min-height: 44px;
+  box-sizing: border-box;
   border-radius: var(--radius-md);
   border: 1.5px solid var(--border-default);
   background: var(--bg-input);
@@ -205,6 +206,9 @@
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -329,11 +333,17 @@
   align-items: center;
   gap: var(--space-md);
   transition: all var(--transition-fast);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .capture-stat-card:hover {
   border-color: var(--primary-lighter);
   box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
 }
 
 .capture-stat-icon {

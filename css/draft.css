@@ -8,6 +8,7 @@
   grid-template-columns: 1fr 1.4fr;
   gap: var(--space-lg);
   min-height: calc(100vh - 120px);
+  min-height: calc(100dvh - 120px);
 }
 
 /* Original idea panel */
@@ -425,8 +426,9 @@
 /* Analytics page */
 .analytics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: var(--space-lg);
+  max-width: 100%;
 }
 
 .analytics-card {
@@ -434,6 +436,9 @@
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .analytics-card h3 {

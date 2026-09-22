@@ -20,7 +20,6 @@ var Capture = {
       <div class="capture-hero">
         <div class="capture-hero-content">
           <h1>💡 Ghi nhận ý tưởng</h1>
-          <p>Capture ý tưởng ngay khi xuất hiện — AI sẽ giúp bạn phát triển bản thảo</p>
           <div class="quick-capture">
             <textarea class="quick-capture-input" id="quick-capture-input"
               placeholder="Nhập ý tưởng của bạn... (Cmd+Enter để lưu nhanh)"
@@ -31,40 +30,40 @@ var Capture = {
           </div>
           <div class="quick-capture-hint">
             <kbd>Cmd</kbd> + <kbd>Enter</kbd> lưu nhanh &nbsp;·&nbsp;
-            <kbd>Tab</kbd> mở form chi tiết
+            <kbd>Cmd</kbd> + <kbd>E</kbd> mở form chi tiết
           </div>
         </div>
       </div>
 
       <div class="capture-stats">
-        <div class="capture-stat-card animate-slide-up" style="animation-delay: 0.05s">
+        <button type="button" class="capture-stat-card animate-slide-up" style="animation-delay: 0.05s" onclick="App.navigate('timeline')" title="Xem ý tưởng hôm nay">
           <div class="capture-stat-icon purple">💡</div>
           <div>
             <div class="capture-stat-value">${todayCount}</div>
             <div class="capture-stat-label">Hôm nay</div>
           </div>
-        </div>
-        <div class="capture-stat-card animate-slide-up" style="animation-delay: 0.1s">
+        </button>
+        <button type="button" class="capture-stat-card animate-slide-up" style="animation-delay: 0.1s" onclick="App.navigate('timeline')" title="Xem ý tưởng tuần này">
           <div class="capture-stat-icon amber">📅</div>
           <div>
             <div class="capture-stat-value">${weekCount}</div>
             <div class="capture-stat-label">Tuần này</div>
           </div>
-        </div>
-        <div class="capture-stat-card animate-slide-up" style="animation-delay: 0.15s">
+        </button>
+        <button type="button" class="capture-stat-card animate-slide-up" style="animation-delay: 0.15s" onclick="App.navigate('timeline')" title="Xem ý tưởng tháng này">
           <div class="capture-stat-icon blue">📊</div>
           <div>
             <div class="capture-stat-value">${monthCount}</div>
             <div class="capture-stat-label">Tháng này</div>
           </div>
-        </div>
-        <div class="capture-stat-card animate-slide-up" style="animation-delay: 0.2s">
+        </button>
+        <button type="button" class="capture-stat-card animate-slide-up" style="animation-delay: 0.2s" onclick="App.navigate('timeline')" title="Xem bản thảo AI">
           <div class="capture-stat-icon green">📝</div>
           <div>
             <div class="capture-stat-value">${totalDrafts}</div>
             <div class="capture-stat-label">Bản thảo AI</div>
           </div>
-        </div>
+        </button>
       </div>
 
       <div id="capture-form-container" style="display:none">
@@ -462,10 +461,12 @@ var Capture = {
         }
       }
 
-      // Tab from quick input: expand form
-      if (e.key === 'Tab' && document.activeElement?.id === 'quick-capture-input') {
-        e.preventDefault();
-        this.expandForm();
+      // Cmd/Ctrl+E: expand form
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'e' || e.key === 'E')) {
+        if (App.currentPage === 'capture') {
+          e.preventDefault();
+          this.expandForm();
+        }
       }
     });
   }

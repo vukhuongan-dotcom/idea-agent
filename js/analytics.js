@@ -172,11 +172,13 @@ var Analytics = {
     return `
       <div class="analytics-card" style="grid-column: 1 / -1">
         <h3>🔥 Activity Heatmap (90 ngày)</h3>
-        <div style="display: grid; grid-template-columns: repeat(${Math.ceil(cells.length / 7)}, 1fr); gap: 3px; margin-top: var(--space-md)">
-          ${cells.map(c => `
-            <div class="heatmap-cell level-${c.level}" title="${c.date}: ${c.count} ý tưởng"
-              style="aspect-ratio: 1; border-radius: 3px; min-height: 12px"></div>
-          `).join('')}
+        <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: var(--space-xs);">
+          <div style="display: grid; grid-template-columns: repeat(${Math.ceil(cells.length / 7)}, 1fr); min-width: 320px; gap: 3px; margin-top: var(--space-md)">
+            ${cells.map(c => `
+              <div class="heatmap-cell level-${c.level}" title="${c.date}: ${c.count} ý tưởng"
+                style="aspect-ratio: 1; border-radius: 3px; min-height: 12px"></div>
+            `).join('')}
+          </div>
         </div>
         <div style="display: flex; align-items: center; gap: var(--space-xs); justify-content: flex-end; margin-top: var(--space-sm); font-size: 0.72rem; color: var(--text-muted)">
           Ít <div class="heatmap-cell" style="width: 12px; height: 12px; display: inline-block; border-radius: 2px"></div>

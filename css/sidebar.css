@@ -83,6 +83,8 @@
   align-items: center;
   gap: var(--space-sm);
   padding: 10px 14px;
+  min-height: 44px;
+  box-sizing: border-box;
   border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: 0.875rem;
@@ -175,8 +177,11 @@
 
 /* Theme toggle */
 .theme-toggle {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  box-sizing: border-box;
   border-radius: var(--radius-md);
   background: var(--bg-tertiary);
   border: 1px solid var(--border-default);
@@ -224,8 +229,11 @@
 }
 
 .mobile-menu-btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -257,6 +265,8 @@
 /* Google Sign-In Button */
 .google-signin-btn {
   width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -333,4 +343,63 @@
 
 .ai-status.disconnected {
   color: var(--text-muted);
+}
+
+/* ========================================
+   Collapsed sidebar (icon-only mode)
+   ======================================== */
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed, 72px);
+}
+
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .logo-subtitle,
+.sidebar.collapsed .nav-section-title,
+.sidebar.collapsed .nav-item span,
+.sidebar.collapsed .nav-badge,
+.sidebar.collapsed .sidebar-footer-content,
+.sidebar.collapsed #sidebar-user {
+  display: none !important;
+}
+
+.sidebar.collapsed .sidebar-logo {
+  padding: var(--space-md) var(--space-sm);
+  justify-content: center;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 12px;
+}
+
+.sidebar.collapsed .sidebar-footer {
+  padding: var(--space-sm);
+  align-items: center;
+}
+
+/* Tablet Breakpoint (769px–1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar {
+    width: var(--sidebar-collapsed, 72px);
+  }
+
+  .sidebar .logo-text,
+  .sidebar .logo-subtitle,
+  .sidebar .nav-section-title,
+  .sidebar .nav-item span,
+  .sidebar .nav-badge,
+  .sidebar .sidebar-footer-content,
+  .sidebar #sidebar-user {
+    display: none !important;
+  }
+
+  .sidebar .sidebar-logo {
+    padding: var(--space-md) var(--space-sm);
+    justify-content: center;
+  }
+
+  .sidebar .nav-item {
+    justify-content: center;
+    padding: 12px;
+  }
 }
