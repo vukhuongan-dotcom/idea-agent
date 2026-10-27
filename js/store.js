@@ -29,16 +29,21 @@ var Store = {
   // Initialize store
   init() {
     let data = this.load();
-    if (!data || data.version !== this.DATA_VERSION) {
-      data = { ...this.defaults };
+    if (!data) {
+      data = JSON.parse(JSON.stringify(this.defaults));
       this.save(data);
     } else {
       let changed = false;
-      // 2.1: Vá dữ liệu cũ: nếu geminiModel không thuộc ['deepseek-chat','deepseek-reasoner'] thì đặt lại
       const validModels = ['deepseek-chat', 'deepseek-reasoner'];
       if (!data.settings || !validModels.includes(data.settings.geminiModel)) {
         if (!data.settings) data.settings = { ...this.defaults.settings };
         data.settings.geminiModel = 'deepseek-chat';
+        changed = true;
+      }
+
+      if (!data.stats) data.stats = { totalIdeas: 0, totalDrafts: 0, lastCaptureDate: null };
+      if (!data.stats.seq) {
+        data.stats.seq = {};
         changed = true;
       }
 
@@ -56,6 +61,20 @@ var Store = {
             changed = true;
           }
           seen.add(item.id);
+
+          if (item.id) {
+            const parts = item.id.split('-');
+            const num = parseInt(parts.pop(), 10);
+            const dateStr = parts.join('-');
+            if (dateStr && !isNaN(num)) {
+              data.stats.seq[dateStr] = Math.max(data.stats.seq[dateStr] || 0, num);
+            }
+          }
+
+          if (typeof item.status === 'string' && item.status.startsWith('draft')) {
+            item.status = 'developing';
+            changed = true;
+          }
         }
       }
 
@@ -81,9 +100,25 @@ var Store = {
   save(data) {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+      return true;
     } catch (e) {
       console.error('Store.save error:', e);
+      return false;
     }
+  },
+
+  getStorageUsage() {
+    let chars = 0;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        const v = localStorage.getItem(k);
+        chars += (k ? k.length : 0) + (v ? v.length : 0);
+      }
+    } catch (e) {}
+    const kb = Math.round(chars / 1024);
+    const pct = Math.min(100, Math.round((chars / (5 * 1024 * 1024)) * 100));
+    return { chars, kb, pct, maxKb: 5120 };
   },
 
   // Get current data
@@ -103,17 +138,25 @@ var Store = {
   // IDEAS CRUD
   // ========================
 
-  // Generate next idea ID for a given date (max số thứ tự hiện có + 1)
+  // Generate next idea ID for a given date (dùng bộ đếm chỉ tăng stats.seq)
   generateId(date) {
     const dateStr = this.formatDateId(date);
-    const ideas = this.getData().ideas || [];
-    let maxNum = 0;
+    const data = this.getData();
+    if (!data.stats) data.stats = { totalIdeas: 0, totalDrafts: 0 };
+    if (!data.stats.seq) data.stats.seq = {};
+
+    let curSeq = data.stats.seq[dateStr] || 0;
+    const ideas = data.ideas || [];
     ideas.forEach(i => {
       if (i.id?.startsWith(dateStr + '-')) {
-        maxNum = Math.max(maxNum, parseInt(i.id.split('-').pop(), 10) || 0);
+        curSeq = Math.max(curSeq, parseInt(i.id.split('-').pop(), 10) || 0);
       }
     });
-    return `${dateStr}-${String(maxNum + 1).padStart(3, '0')}`;
+
+    const nextSeq = curSeq + 1;
+    data.stats.seq[dateStr] = nextSeq;
+    this.save(data);
+    return `${dateStr}-${String(nextSeq).padStart(3, '0')}`;
   },
 
   // Format date for ID: YYYY-MM-DD
@@ -127,9 +170,9 @@ var Store = {
 
   // Add new idea
   addIdea(ideaData) {
-    const data = this.getData();
     const now = new Date();
     const id = this.generateId(now);
+    const data = this.getData();
 
     const idea = {
       id,
@@ -139,11 +182,11 @@ var Store = {
       category: ideaData.category || data.settings.defaultCategory,
       tags: ideaData.tags || [],
       priority: ideaData.priority || 'medium',
-      status: 'raw',
+      status: ideaData.status || 'raw',
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
       drafts: [],
-      linkedIdeas: [],
+      linkedIdeas: ideaData.linkedIdeas || [],
     };
 
     data.ideas.unshift(idea);
@@ -157,7 +200,12 @@ var Store = {
       data.tags = Array.from(existingTags);
     }
 
-    this.save(data);
+    const saved = this.save(data);
+    if (!saved) {
+      data.ideas.shift();
+      data.stats.totalIdeas = data.ideas.length;
+      return null;
+    }
     return idea;
   },
 
@@ -178,16 +226,25 @@ var Store = {
       updatedAt: new Date().toISOString()
     };
 
-    this.save(data);
-    return data.ideas[idx];
+    const saved = this.save(data);
+    return saved ? data.ideas[idx] : null;
   },
 
-  // Delete idea
+  // Delete idea — cleans linkedIdeas from other ideas, removes from selection, updates stats
   deleteIdea(id) {
     const data = this.getData();
     data.ideas = data.ideas.filter(i => i.id !== id);
+    data.ideas.forEach(i => {
+      if (Array.isArray(i.linkedIdeas)) {
+        i.linkedIdeas = i.linkedIdeas.filter(lid => lid !== id);
+      }
+    });
     data.stats.totalIdeas = data.ideas.length;
-    this.save(data);
+    data.stats.totalDrafts = data.ideas.reduce((sum, i) => sum + (i.drafts ? i.drafts.length : 0), 0);
+    if (typeof Timeline !== 'undefined' && Timeline.selectedIdeaIds) {
+      Timeline.selectedIdeaIds.delete(id);
+    }
+    return this.save(data);
   },
 
   // Batch update multiple ideas
@@ -223,7 +280,7 @@ var Store = {
     if (!ideaA.linkedIdeas.includes(idB)) ideaA.linkedIdeas.push(idB);
     if (!ideaB.linkedIdeas.includes(idA)) ideaB.linkedIdeas.push(idA);
 
-    this.save(data);
+    return this.save(data);
   },
 
   // Add draft to idea
@@ -232,6 +289,7 @@ var Store = {
     const idea = data.ideas.find(i => i.id === ideaId);
     if (!idea) return null;
 
+    if (!Array.isArray(idea.drafts)) idea.drafts = [];
     const version = idea.drafts.length + 1;
     const draft = {
       version,
@@ -240,11 +298,19 @@ var Store = {
     };
 
     idea.drafts.push(draft);
-    idea.status = `draft_v${version}`;
+    const prevStatus = idea.status;
+    if (idea.status !== 'reviewed' && idea.status !== 'archived') {
+      idea.status = 'developing';
+    }
     idea.updatedAt = new Date().toISOString();
-    data.stats.totalDrafts = data.ideas.reduce((sum, i) => sum + i.drafts.length, 0);
+    data.stats.totalDrafts = data.ideas.reduce((sum, i) => sum + (i.drafts ? i.drafts.length : 0), 0);
 
-    this.save(data);
+    const saved = this.save(data);
+    if (!saved) {
+      idea.drafts.pop();
+      idea.status = prevStatus;
+      return null;
+    }
     return draft;
   },
 
@@ -255,72 +321,52 @@ var Store = {
   // Get all ideas sorted by date (newest first)
   getAllIdeas(options = {}) {
     let ideas = [...this.getData().ideas];
-
-    // Filter by category
-    if (options.category && options.category !== 'all') {
-      ideas = ideas.filter(i => i.category === options.category);
-    }
-
-    // Filter by priority
-    if (options.priority && options.priority !== 'all') {
-      ideas = ideas.filter(i => i.priority === options.priority);
-    }
-
-    // Filter by status
+    if (options.category && options.category !== 'all') ideas = ideas.filter(i => i.category === options.category);
+    if (options.priority && options.priority !== 'all') ideas = ideas.filter(i => i.priority === options.priority);
     if (options.status && options.status !== 'all') {
-      if (options.status === 'has_draft' || options.status === 'draft') {
-        ideas = ideas.filter(i => (i.drafts && i.drafts.length > 0) || (i.status && i.status.startsWith('draft')));
-      } else {
-        ideas = ideas.filter(i => i.status === options.status || (i.status && i.status.startsWith(options.status)));
-      }
+      ideas = options.status === 'has_draft' || options.status === 'draft'
+        ? ideas.filter(i => (i.drafts && i.drafts.length > 0) || (i.status && i.status.startsWith('draft')))
+        : ideas.filter(i => i.status === options.status || (i.status && i.status.startsWith(options.status)));
     }
-
-    // Filter by tag
     if (options.tag && options.tag.trim()) {
-      const targetTag = options.tag.trim().toLowerCase().replace(/^#/, '');
-      ideas = ideas.filter(i => Array.isArray(i.tags) && i.tags.some(t => t.toLowerCase().replace(/^#/, '') === targetTag));
+      const tag = options.tag.trim().toLowerCase().replace(/^#/, '');
+      ideas = ideas.filter(i => Array.isArray(i.tags) && i.tags.some(t => t.toLowerCase().replace(/^#/, '') === tag));
     }
-
-    // Filter by dateRange: today, week, month
     if (options.dateRange && options.dateRange !== 'all') {
       const now = new Date();
       if (options.dateRange === 'today') {
         const todayStr = this.formatDateId(now);
         ideas = ideas.filter(i => i.id && i.id.startsWith(todayStr));
       } else if (options.dateRange === 'week') {
-        const weekAgo = new Date(now.getTime() - 7 * 86400000);
+        const weekAgo = new Date(Date.now() - 7 * 86400000);
         ideas = ideas.filter(i => new Date(i.createdAt) >= weekAgo);
       } else if (options.dateRange === 'month') {
         const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         ideas = ideas.filter(i => i.id && i.id.startsWith(monthStr));
       }
     }
-
-    // Search text
     if (options.search) {
-      const q = options.search.toLowerCase().trim();
-      ideas = ideas.filter(i =>
-        (i.title && i.title.toLowerCase().includes(q)) ||
-        (i.summary && i.summary.toLowerCase().includes(q)) ||
-        (i.content && i.content.toLowerCase().includes(q)) ||
-        (Array.isArray(i.tags) && i.tags.some(t => t.toLowerCase().includes(q))) ||
-        (i.id && i.id.toLowerCase().includes(q))
-      );
+      const q = options.search.trim();
+      const qNorm = Utils.removeVietnameseTones(q);
+      ideas = ideas.filter(i => {
+        const titleNorm = Utils.removeVietnameseTones(i.title || '');
+        const summaryNorm = Utils.removeVietnameseTones(i.summary || '');
+        const contentNorm = Utils.removeVietnameseTones(i.content || '');
+        const idNorm = (i.id || '').toLowerCase();
+        const tagMatch = Array.isArray(i.tags) && i.tags.some(t => Utils.removeVietnameseTones(t).includes(qNorm));
+        return titleNorm.includes(qNorm) || summaryNorm.includes(qNorm) || contentNorm.includes(qNorm) || idNorm.includes(qNorm) || tagMatch;
+      });
     }
-
-    // Sort
     if (options.sort === 'oldest') {
       ideas.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     } else if (options.sort === 'priority') {
-      const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-      ideas.sort((a, b) => (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4));
+      const pMap = { critical: 0, high: 1, medium: 2, low: 3 };
+      ideas.sort((a, b) => (pMap[a.priority] ?? 4) - (pMap[b.priority] ?? 4));
     } else if (options.sort === 'drafts') {
       ideas.sort((a, b) => (b.drafts?.length || 0) - (a.drafts?.length || 0));
     } else {
-      // Default: newest first
       ideas.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
-
     return ideas;
   },
 
@@ -400,14 +446,45 @@ var Store = {
     return JSON.stringify(this.getData(), null, 2);
   },
 
-  importData(jsonString) {
+  validateData(data) {
+    if (!data || typeof data !== 'object') return false;
+    if (!Array.isArray(data.ideas)) return false;
+    return data.ideas.every(i => i && typeof i.id === 'string' && typeof i.title === 'string');
+  },
+
+  importData(jsonString, mode = 'replace') {
     try {
-      const data = JSON.parse(jsonString);
-      if (data.version) {
-        this.save(data);
-        return true;
+      const imported = JSON.parse(jsonString);
+      if (!this.validateData(imported)) return false;
+
+      if (mode === 'merge') {
+        const current = this.getData();
+        const existingIds = new Set(current.ideas.map(i => i.id));
+        imported.ideas.forEach(item => {
+          if (!existingIds.has(item.id)) {
+            current.ideas.push(item);
+            existingIds.add(item.id);
+          }
+        });
+        const allTags = new Set([...(current.tags || []), ...(imported.tags || [])]);
+        current.tags = Array.from(allTags);
+        current.stats.totalIdeas = current.ideas.length;
+        current.stats.totalDrafts = current.ideas.reduce((s, i) => s + (i.drafts ? i.drafts.length : 0), 0);
+        return this.save(current);
+      } else {
+        const data = {
+          version: this.DATA_VERSION,
+          settings: imported.settings || this.defaults.settings,
+          ideas: imported.ideas,
+          tags: imported.tags || this.defaults.tags,
+          stats: imported.stats || {
+            totalIdeas: imported.ideas.length,
+            totalDrafts: imported.ideas.reduce((s, i) => s + (i.drafts ? i.drafts.length : 0), 0),
+            lastCaptureDate: new Date().toISOString()
+          }
+        };
+        return this.save(data);
       }
-      return false;
     } catch (e) {
       console.error('Import error:', e);
       return false;

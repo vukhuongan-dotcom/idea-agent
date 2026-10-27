@@ -39,21 +39,7 @@
     <div id="app">
         <!-- Mobile Header -->
         <div class="mobile-header" id="mobile-header">
-            <div class="mobile-header-left">
-                <button class="mobile-menu-btn"
-                    aria-label="Mở menu điều hướng"
-                    aria-expanded="false"
-                    aria-controls="sidebar"
-                    id="mobile-menu-btn"
-                    onclick="App.toggleSidebar()">☰</button>
-                <span class="mobile-header-title">💡 Idea Agent</span>
-            </div>
-            <div>
-                <button class="btn btn-icon btn-ghost"
-                    aria-label="Đổi giao diện sáng/tối"
-                    onclick="App.toggleTheme()"
-                    id="mobile-theme-btn">🌙</button>
-            </div>
+            <span class="mobile-header-title">💡 Idea Agent</span>
         </div>
 
         <!-- Sidebar Overlay (mobile) -->
@@ -73,24 +59,27 @@
             <nav class="sidebar-nav" aria-label="Menu chính">
                 <div class="nav-section-title" aria-hidden="true">CHÍNH</div>
                 <a href="#capture" class="nav-item active" data-page="capture"
-                    aria-current="page" onclick="App.closeSidebar()">
+                    title="Ghi nhận ý tưởng" aria-label="Ghi nhận ý tưởng" aria-current="page" onclick="App.closeSidebar()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                     <span>Ghi nhận</span>
                 </a>
-                <a href="#timeline" class="nav-item" data-page="timeline" onclick="App.closeSidebar()">
+                <a href="#timeline" class="nav-item" data-page="timeline"
+                    title="Dòng thời gian ý tưởng" aria-label="Dòng thời gian ý tưởng" onclick="App.closeSidebar()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     <span>Timeline</span>
                     <span class="nav-badge" id="nav-timeline-badge" aria-label="số ý tưởng" style="display:none">0</span>
                 </a>
 
                 <div class="nav-section-title" style="margin-top: var(--space-md)" aria-hidden="true">PHÂN TÍCH</div>
-                <a href="#analytics" class="nav-item" data-page="analytics" onclick="App.closeSidebar()">
+                <a href="#analytics" class="nav-item" data-page="analytics"
+                    title="Phân tích & Thống kê" aria-label="Phân tích & Thống kê" onclick="App.closeSidebar()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                     <span>Phân tích</span>
                 </a>
 
                 <div class="nav-section-title" style="margin-top: var(--space-md)" aria-hidden="true">HỆ THỐNG</div>
-                <a href="#settings" class="nav-item" data-page="settings" onclick="App.closeSidebar()">
+                <a href="#settings" class="nav-item" data-page="settings"
+                    title="Cài đặt hệ thống" aria-label="Cài đặt hệ thống" onclick="App.closeSidebar()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
                     <span>Cài đặt</span>
                 </a>
@@ -119,7 +108,7 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="main-content" id="main-content" aria-live="polite">
+        <main class="main-content" id="main-content">
             <!-- Pages rendered here by JS -->
         </main>
 
@@ -154,6 +143,9 @@
             <div class="modal-body" id="modal-body"></div>
         </div>
     </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
 
     <!-- Scripts -->
     <script src="js/store.js"></script>

@@ -3,6 +3,56 @@
    View/edit AI-generated drafts
    ======================================== */
 
+.draft-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.draft-nav-title {
+  display: none;
+}
+
+.draft-nav-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.draft-mobile-menu-btn {
+  display: none;
+}
+
+.draft-mobile-bottom-actions {
+  display: none;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.back-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary-lighter);
+}
+
 .draft-container {
   display: grid;
   grid-template-columns: 1fr 1.4fr;

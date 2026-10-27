@@ -1,6 +1,7 @@
 // build.js — Bundle + minify JS and CSS for production
 const esbuild = require('esbuild');
 const CleanCSS = require('clean-css');
+const zlib = require('zlib');
 const fs = require('fs');
 const path = require('path');
 
@@ -52,21 +53,29 @@ if (missingCss.length || missingJs.length || extraCss.length || extraJs.length) 
 }
 
 // --- 2. Bundle JS ---
-const jsContent = jsFiles.map(f => fs.readFileSync(f, 'utf8')).join('\n');
+let jsContent = jsFiles.map(f => fs.readFileSync(f, 'utf8')).join('\n');
+
+// Tự rút gọn khoảng trắng trong template literal HTML
+jsContent = jsContent
+  .replace(/>\s*\n\s*</g, '><')
+  .replace(/>\s{2,}</g, '><');
+
 fs.writeFileSync('dist/bundle.tmp.js', jsContent);
 
 esbuild.buildSync({
   entryPoints: ['dist/bundle.tmp.js'],
   bundle: false,
   minify: true,
+  charset: 'utf8',
   outfile: 'dist/bundle.min.js',
 });
 fs.unlinkSync('dist/bundle.tmp.js');
 
 // --- 3. Bundle CSS ---
 const cssContent = cssFiles.map(f => fs.readFileSync(f, 'utf8')).join('\n');
-const minifiedCSS = new CleanCSS({ level: 2 }).minify(cssContent);
-fs.writeFileSync('dist/bundle.min.css', minifiedCSS.styles);
+const cleanResult = new CleanCSS({ level: 2 }).minify(cssContent);
+const minifiedStyles = esbuild.transformSync(cleanResult.styles, { loader: 'css', minify: true }).code;
+fs.writeFileSync('dist/bundle.min.css', minifiedStyles);
 
 // --- 4. Copy static assets ---
 const staticFiles = ['index.html', 'manifest.json', 'robots.txt', 'favicon.svg', 'sw.js'];
@@ -96,23 +105,26 @@ html = html.replace('</body>', '    <script src="bundle.min.js"></script>\n</bod
 
 fs.writeFileSync('dist/index.html', html);
 
-// --- 6. Kiểm tra ngân sách kích thước (JS <= 90KB, CSS <= 50KB) ---
-const jsSizeBytes = fs.statSync('dist/bundle.min.js').size;
-const cssSizeBytes = fs.statSync('dist/bundle.min.css').size;
+// --- 6. Kiểm tra ngân sách kích thước (đo theo gzip: JS <= 32KB, CSS <= 12KB) ---
+const jsRawBytes = fs.statSync('dist/bundle.min.js').size;
+const cssRawBytes = fs.statSync('dist/bundle.min.css').size;
 
-const JS_LIMIT_BYTES = 90 * 1024;  // 92,160 bytes (~90KB)
-const CSS_LIMIT_BYTES = 50 * 1024; // 51,200 bytes (~50KB)
+const jsGzipBytes = zlib.gzipSync(fs.readFileSync('dist/bundle.min.js'), { level: 9 }).length;
+const cssGzipBytes = zlib.gzipSync(fs.readFileSync('dist/bundle.min.css'), { level: 9 }).length;
+
+const JS_GZIP_LIMIT_BYTES = 32 * 1024;  // 32,768 bytes (32KB gzip)
+const CSS_GZIP_LIMIT_BYTES = 12 * 1024; // 12,288 bytes (12KB gzip)
 
 console.log('✅ Build complete!');
-console.log(`   JS:  dist/bundle.min.js  (${jsSizeBytes} B / ${Math.round(jsSizeBytes / 1024)}KB) [Trần 90KB: còn ${(JS_LIMIT_BYTES - jsSizeBytes)} B]`);
-console.log(`   CSS: dist/bundle.min.css (${cssSizeBytes} B / ${Math.round(cssSizeBytes / 1024)}KB) [Trần 50KB: còn ${(CSS_LIMIT_BYTES - cssSizeBytes)} B]`);
+console.log(`   JS:  dist/bundle.min.js  (raw: ${jsRawBytes} B / ${Math.round(jsRawBytes / 1024)}KB | gzip: ${jsGzipBytes} B / ${(jsGzipBytes / 1024).toFixed(1)}KB) [Trần gzip 32KB: còn ${(JS_GZIP_LIMIT_BYTES - jsGzipBytes)} B]`);
+console.log(`   CSS: dist/bundle.min.css (raw: ${cssRawBytes} B / ${Math.round(cssRawBytes / 1024)}KB | gzip: ${cssGzipBytes} B / ${(cssGzipBytes / 1024).toFixed(1)}KB) [Trần gzip 12KB: còn ${(CSS_GZIP_LIMIT_BYTES - cssGzipBytes)} B]`);
 
-if (jsSizeBytes > JS_LIMIT_BYTES) {
-  console.error(`❌ VƯỢT NGÂN SÁCH JS: ${jsSizeBytes} B > ${JS_LIMIT_BYTES} B (90KB)`);
+if (jsGzipBytes > JS_GZIP_LIMIT_BYTES) {
+  console.error(`❌ VƯỢT NGÂN SÁCH GZIP JS: ${jsGzipBytes} B > ${JS_GZIP_LIMIT_BYTES} B (32KB)`);
   process.exit(1);
 }
 
-if (cssSizeBytes > CSS_LIMIT_BYTES) {
-  console.error(`❌ VƯỢT NGÂN SÁCH CSS: ${cssSizeBytes} B > ${CSS_LIMIT_BYTES} B (50KB)`);
+if (cssGzipBytes > CSS_GZIP_LIMIT_BYTES) {
+  console.error(`❌ VƯỢT NGÂN SÁCH GZIP CSS: ${cssGzipBytes} B > ${CSS_GZIP_LIMIT_BYTES} B (12KB)`);
   process.exit(1);
 }

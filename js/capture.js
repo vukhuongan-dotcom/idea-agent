@@ -16,25 +16,32 @@ var Capture = {
     const defaultCat = this.quickCategory || Store.getSettings().defaultCategory || 'tech';
     const stats = [
       ['💡', Store.getTodayCount(), 'Hôm nay', 'purple', '0.05s', "{dateRange:'today'}"],
-      ['📅', Store.getWeekCount(), 'Tuần này', 'amber', '0.1s', "{dateRange:'week'}"],
+      ['📅', Store.getWeekCount(), '7 ngày qua', 'amber', '0.1s', "{dateRange:'week'}"],
       ['📊', Store.getMonthCount(), 'Tháng này', 'blue', '0.15s', "{dateRange:'month'}"],
       ['📝', data.stats.totalDrafts || 0, 'Bản thảo AI', 'green', '0.2s', "{status:'draft'}"]
     ];
 
-    return `<div class="capture-hero"><div class="capture-hero-content"><h1>💡 Ghi nhận ý tưởng</h1><div class="quick-capture"><textarea class="quick-capture-input" id="quick-capture-input" placeholder="Nhập ý tưởng... (Hỗ trợ #tag !cao @lamsang)" rows="1" oninput="Capture.handleQuickInput(this)"></textarea><div class="quick-capture-buttons"><button class="quick-capture-btn" onclick="Capture.quickSave()" id="quick-capture-btn" title="Lưu nhanh ý tưởng (Cmd+Enter)">⚡ Lưu nhanh</button><button class="quick-capture-more-btn" onclick="Capture.expandForm()" id="quick-capture-more-btn" title="Mở form chi tiết (Cmd+E)">⚙️ Chi tiết</button></div></div><div class="quick-capture-meta-bar" id="quick-meta-bar"><div class="quick-pill-group"><span class="quick-pill-label">Danh mục:</span>${Object.entries(Utils.categories).map(([k, v]) => `<button type="button" class="quick-pill ${k === defaultCat ? 'active' : ''}" data-cat="${k}" onclick="Capture.selectQuickCategory('${k}')">${v.icon} ${v.label}</button>`).join('')}</div><div class="quick-pill-group"><span class="quick-pill-label">Ưu tiên:</span>${Object.entries(Utils.priorities).map(([k, v]) => `<button type="button" class="quick-pill ${k === (this.quickPriority || 'medium') ? 'active' : ''}" data-priority="${k}" onclick="Capture.selectQuickPriority('${k}')">${v.icon} ${v.label}</button>`).join('')}</div></div><div class="quick-capture-hint"><kbd>Cmd</kbd> + <kbd>Enter</kbd> lưu nhanh &nbsp;·&nbsp; <kbd>Cmd</kbd> + <kbd>E</kbd> form chi tiết &nbsp;·&nbsp; Cú pháp: <code>#tag</code>, <code>!cao</code>, <code>@lamsang</code></div></div></div><div class="capture-stats">${stats.map(([ico, val, lbl, clr, dly, flt]) => `<button type="button" class="capture-stat-card animate-slide-up" style="animation-delay:${dly}" onclick="Capture.goToTimeline(${flt})"><div class="capture-stat-icon ${clr}">${ico}</div><div><div class="capture-stat-value">${val}</div><div class="capture-stat-label">${lbl}</div></div></button>`).join('')}</div><div id="capture-form-container" style="display:none">${this.renderForm()}</div><div class="recent-ideas-section"><div class="recent-ideas-header"><h2>⚡ Ý tưởng gần đây</h2><a href="#" class="btn btn-ghost btn-sm" onclick="App.navigate('timeline'); return false;">Xem tất cả →</a></div><div id="recent-ideas-list">${this.renderRecentIdeas()}</div></div>`;
+    const pills = (lbl, items, cur, fn, attr) => `<div class="quick-pill-group"><span class="quick-pill-label">${lbl}</span>${Object.entries(items).map(([k, v]) => `<button type="button" class="quick-pill ${k === cur ? 'active' : ''}" ${attr}="${k}" onclick="${fn}('${k}')">${v.icon} ${v.label}</button>`).join('')}</div>`;
+
+    return `<div class="capture-hero"><div class="capture-hero-content"><h1>💡 Ghi nhận ý tưởng</h1><div class="quick-capture"><textarea class="quick-capture-input" id="quick-capture-input" placeholder="Nhập ý tưởng... (Hỗ trợ #tag !cao @lamsang)" rows="1" oninput="Capture.handleQuickInput(this)"></textarea><div id="quick-token-preview" class="quick-token-preview" style="display:none"></div><div class="quick-capture-buttons"><button class="quick-capture-btn" onclick="Capture.quickSave()" id="quick-capture-btn" title="Lưu nhanh ý tưởng (Cmd+Enter)">⚡ Lưu nhanh</button><button type="button" class="quick-capture-more-btn" onclick="Capture.expandForm()" id="quick-capture-more-btn" title="Mở form chi tiết (Cmd+E)">⚙️ Chi tiết</button></div></div><div class="quick-capture-meta-bar" id="quick-meta-bar">${pills('Danh mục:', Utils.categories, defaultCat, 'Capture.selectQuickCategory', 'data-cat')}${pills('Ưu tiên:', Utils.priorities, this.quickPriority || 'medium', 'Capture.selectQuickPriority', 'data-priority')}</div><div class="quick-capture-hint"><span class="quick-capture-hint-text"><kbd>Cmd</kbd> + <kbd>Enter</kbd> lưu nhanh &nbsp;·&nbsp; <kbd>Cmd</kbd> + <kbd>E</kbd> form chi tiết &nbsp;·&nbsp; </span><button type="button" class="syntax-help-btn" onclick="Capture.showSyntaxHelp()" title="Xem cú pháp" aria-label="Xem cú pháp">? Cú pháp</button></div></div></div><div class="capture-stats">${stats.map(([ico, val, lbl, clr, dly, flt]) => `<button type="button" class="capture-stat-card animate-slide-up" style="animation-delay:${dly}" onclick="Capture.goToTimeline(${flt})"><div class="capture-stat-icon ${clr}">${ico}</div><div class="capture-stat-text-wrap"><div class="capture-stat-value">${val}</div><div class="capture-stat-label">${lbl}</div></div></button>`).join('')}</div><div id="capture-form-container" style="display:none">${this.renderForm()}</div><div class="recent-ideas-section"><div class="recent-ideas-header"><h2>⚡ Ý tưởng gần đây</h2><a href="#" class="btn btn-ghost btn-sm" onclick="App.navigate('timeline'); return false;">Xem tất cả →</a></div><div id="recent-ideas-list">${this.renderRecentIdeas()}</div></div>`;
   },
 
   renderForm() {
-    const settings = Store.getSettings();
-    return `<div class="capture-form animate-scale-in"><div class="capture-form-grid"><div class="form-group full-width"><label class="form-label">Tiêu đề ý tưởng</label><input type="text" class="form-input" id="idea-title" placeholder="Đặt tên cho ý tưởng" autofocus></div><div class="form-group full-width"><label class="form-label">Mô tả chi tiết</label><textarea class="form-textarea" id="idea-content" placeholder="Mô tả chi tiết ý tưởng. Viết tự do — AI sẽ giúp bạn cấu trúc hóa sau..." rows="4"></textarea></div><div class="form-group"><label class="form-label">Danh mục</label><div class="category-picker" id="category-picker">${Object.entries(Utils.categories).map(([key, cat]) => `<div class="category-option ${key === (this.selectedCategory || settings.defaultCategory) ? 'selected' : ''}" data-cat="${key}" onclick="Capture.selectCategory('${key}')">${cat.icon} ${cat.label}</div>`).join('')}</div></div><div class="form-group"><label class="form-label">Mức ưu tiên</label><div class="priority-picker" id="priority-picker">${Object.entries(Utils.priorities).map(([key, p]) => `<div class="priority-option ${key === this.selectedPriority ? 'selected' : ''}" data-priority="${key}" onclick="Capture.selectPriority('${key}')">${p.icon} ${p.label}</div>`).join('')}</div></div><div class="form-group full-width" style="position:relative"><label class="form-label">Tags</label><div class="tag-input-wrapper" id="tag-input-wrapper" onclick="document.getElementById('tag-input-field').focus()">${this.currentTags.map(t => `<span class="chip chip-tag">#${t}<span class="tag-remove" onclick="Capture.removeTag('${t}'); event.stopPropagation();">×</span></span>`).join('')}<input type="text" class="tag-input-field" id="tag-input-field" placeholder="${this.currentTags.length ? '' : 'Thêm tag...'}" onkeydown="Capture.handleTagInput(event)" oninput="Capture.showTagSuggestions()"></div><div class="tag-suggestions" id="tag-suggestions"></div></div></div><div style="display:flex; justify-content:flex-end; gap:var(--space-sm); margin-top:var(--space-lg)"><button class="btn btn-secondary" onclick="Capture.collapseForm()">Hủy</button><button class="btn btn-primary btn-lg" onclick="Capture.saveIdea()">✨ Lưu ý tưởng</button></div></div>`;
+    const s = Store.getSettings();
+    const F = (l, c, w = false, r = '') => `<div class="form-group ${w ? 'full-width' : ''}" ${r}><label class="form-label">${l}</label>${c}</div>`;
+    const catPicker = `<div class="category-picker" id="category-picker">${Object.entries(Utils.categories).map(([k, c]) => `<div class="category-option ${k === (this.selectedCategory || s.defaultCategory) ? 'selected' : ''}" data-cat="${k}" onclick="Capture.selectCategory('${k}')">${c.icon} ${c.label}</div>`).join('')}</div>`;
+    const prioPicker = `<div class="priority-picker" id="priority-picker">${Object.entries(Utils.priorities).map(([k, p]) => `<div class="priority-option ${k === this.selectedPriority ? 'selected' : ''}" data-priority="${k}" onclick="Capture.selectPriority('${k}')">${p.icon} ${p.label}</div>`).join('')}</div>`;
+    const tagInput = `<div class="tag-input-wrapper" id="tag-input-wrapper" onclick="document.getElementById('tag-input-field').focus()">${this.currentTags.map(t => `<span class="chip chip-tag">#${t}<span class="tag-remove" onclick="Capture.removeTag('${t}');event.stopPropagation();">×</span></span>`).join('')}<input type="text" class="tag-input-field" id="tag-input-field" placeholder="${this.currentTags.length ? '' : 'Thêm tag...'}" onkeydown="Capture.handleTagInput(event)" oninput="Capture.showTagSuggestions()"></div><div class="tag-suggestions" id="tag-suggestions"></div>`;
+
+    return `<div class="capture-form animate-scale-in"><div class="capture-form-grid">${F('Tiêu đề ý tưởng', '<input type="text" class="form-input" id="idea-title" placeholder="Đặt tên cho ý tưởng" autofocus>', true)}${F('Mô tả chi tiết', '<textarea class="form-textarea" id="idea-content" placeholder="Mô tả chi tiết ý tưởng. Viết tự do — AI sẽ giúp bạn cấu trúc hóa sau..." rows="4"></textarea>', true)}${F('Danh mục', catPicker)}${F('Mức ưu tiên', prioPicker)}${F('Tags', tagInput, true, 'style="position:relative"')}</div><div style="display:flex;justify-content:flex-end;gap:var(--space-sm);margin-top:var(--space-lg)"><button class="btn btn-secondary" onclick="Capture.collapseForm()">Hủy</button><button class="btn btn-primary btn-lg" onclick="Capture.saveIdea()">✨ Lưu ý tưởng</button></div></div>`;
   },
 
   renderRecentIdeas() {
     const ideas = Store.getAllIdeas().slice(0, 8);
     if (!ideas.length) {
-      return `<div class="empty-state" style="padding: var(--space-xl)"><div class="empty-state-icon">💭</div><div class="empty-state-title">Chưa có ý tưởng nào</div><div class="empty-state-text">Hãy bắt đầu ghi nhận ý tưởng đầu tiên!</div></div>`;
+      return `<div class="empty-state" style="padding:var(--space-xl)"><div class="empty-state-icon">💭</div><div class="empty-state-title">Chưa có ý tưởng nào</div><div class="empty-state-text">Hãy bắt đầu ghi nhận ý tưởng đầu tiên!</div></div>`;
     }
-    return ideas.map((idea, idx) => `<div class="recent-idea-item animate-slide-up" style="animation-delay: ${idx * 0.04}s" onclick="App.viewDraft('${idea.id}')"><div class="recent-idea-number">${idea.id.split('-').pop()}</div><div class="recent-idea-content"><div class="recent-idea-title">${Utils.escapeHtml(idea.title)}</div><div class="recent-idea-meta"><span class="chip chip-${idea.category} chip-category">${Utils.getCategoryIcon(idea.category)} ${Utils.getCategoryLabel(idea.category)}</span><span class="priority-badge priority-${idea.priority}"><span class="priority-dot"></span> ${Utils.getPriorityLabel(idea.priority)}</span><span class="recent-idea-time">${Utils.formatRelative(idea.createdAt)}</span></div></div><div class="recent-idea-actions"><button class="btn btn-icon btn-ghost" onclick="Capture.generateDraft('${idea.id}'); event.stopPropagation();" title="Tạo bản thảo AI">🤖</button><button class="btn btn-icon btn-ghost" onclick="Capture.confirmDelete('${idea.id}'); event.stopPropagation();" title="Xóa">${Utils.icon('delete', 16)}</button></div></div>`).join('');
+    return ideas.map((idea, idx) => `<div class="recent-idea-item animate-slide-up" style="animation-delay:${idx * 0.04}s" onclick="App.viewDraft('${idea.id}')"><div class="recent-idea-number">${idea.id.split('-').pop()}</div><div class="recent-idea-content"><div class="recent-idea-title">${Utils.escapeHtml(idea.title)}</div><div class="recent-idea-meta"><span class="chip chip-${idea.category} chip-category">${Utils.getCategoryIcon(idea.category)} ${Utils.getCategoryLabel(idea.category)}</span><span class="priority-badge priority-${idea.priority}"><span class="priority-dot"></span> ${Utils.getPriorityLabel(idea.priority)}</span><span class="recent-idea-time">${Utils.formatRelative(idea.createdAt)}</span></div></div><div class="recent-idea-actions"><button class="btn btn-icon btn-ghost" onclick="Capture.generateDraft('${idea.id}');event.stopPropagation();" title="Bản thảo AI">🤖</button><button class="btn btn-icon btn-ghost" onclick="Capture.confirmDelete('${idea.id}');event.stopPropagation();" title="Xóa">${Utils.icon('delete',16)}</button></div></div>`).join('');
   },
 
   // ========================
@@ -44,20 +51,21 @@ var Capture = {
   expandForm() {
     const qIn = document.getElementById('quick-capture-input');
     const qTxt = qIn ? qIn.value.trim() : '';
-    this.selectedCategory = Store.getSettings().defaultCategory;
-    this.selectedPriority = 'medium';
-    this.currentTags = [];
+    const parsed = this.parseQuickText(qTxt);
+    this.selectedCategory = parsed.category;
+    this.selectedPriority = parsed.priority;
+    this.currentTags = [...parsed.tags];
     this.isExpanded = true;
     const c = document.getElementById('capture-form-container');
     if (!c) return;
     c.style.display = 'block';
     c.innerHTML = this.renderForm();
-    if (qTxt) {
-      const ti = document.getElementById('idea-title');
-      if (ti) ti.value = qTxt;
-    }
+    const ti = document.getElementById('idea-title');
+    const ci = document.getElementById('idea-content');
+    if (ti) ti.value = (parsed.title && parsed.title !== 'Ý tưởng không tiêu đề') ? parsed.title : '';
+    if (ci && parsed.content) ci.value = parsed.content;
     setTimeout(() => {
-      const el = document.getElementById(qTxt ? 'idea-content' : 'idea-title');
+      const el = document.getElementById(parsed.content ? 'idea-content' : 'idea-title');
       if (el) el.focus();
     }, 100);
   },
@@ -154,6 +162,10 @@ var Capture = {
       priority: this.selectedPriority,
     });
 
+    if (!idea) {
+      return Utils.showToast('❌ Bộ nhớ đầy. Vui lòng Export sao lưu trong Cài đặt!', 'error', 6000);
+    }
+
     Utils.showToast(`✨ Ý tưởng #${idea.id.split('-').pop()} đã được lưu!`, 'success');
     this.collapseForm();
     const qIn = document.getElementById('quick-capture-input');
@@ -183,7 +195,62 @@ var Capture = {
 
   handleQuickInput(textarea) {
     textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    const newH = Math.min(Math.max(textarea.scrollHeight, 44), 160);
+    textarea.style.height = newH + 'px';
+
+    const prevEl = document.getElementById('quick-token-preview');
+    if (!prevEl) return;
+    const val = textarea.value;
+    const parsed = this.parseQuickText(val);
+
+    const explicitTags = parsed.tags;
+    const explicitPriorityMatch = val.match(/(?:^|\s)!(critical|quantrong|khancap|red|high|cao|gap|low|thap|nhe|medium|tb)\b/i);
+    const explicitCatMatch = val.match(/(?:^|\s)@(clinical|lamsang|benhnhan|mo|research|nghiencuu|nckh|tech|congnghe|it|personal|canhan|business|kinhdoanh)\b/i);
+
+    const chips = [];
+    explicitTags.forEach(t => {
+      chips.push(`<span class="preview-chip tag" onclick="Capture.removeTokenFromQuickInput('#${t}')">#${t} <span class="chip-remove">×</span></span>`);
+    });
+    if (explicitPriorityMatch) {
+      const pLabel = Utils.getPriorityLabel(parsed.priority);
+      chips.push(`<span class="preview-chip priority" onclick="Capture.removeTokenFromQuickInput('${explicitPriorityMatch[0].trim()}')">${pLabel} <span class="chip-remove">×</span></span>`);
+    }
+    if (explicitCatMatch) {
+      const cLabel = Utils.getCategoryLabel(parsed.category);
+      chips.push(`<span class="preview-chip category" onclick="Capture.removeTokenFromQuickInput('${explicitCatMatch[0].trim()}')">${cLabel} <span class="chip-remove">×</span></span>`);
+    }
+
+    if (chips.length > 0) {
+      prevEl.innerHTML = chips.join('');
+      prevEl.style.display = 'flex';
+    } else {
+      prevEl.innerHTML = '';
+      prevEl.style.display = 'none';
+    }
+  },
+
+  removeTokenFromQuickInput(token) {
+    const input = document.getElementById('quick-capture-input');
+    if (!input) return;
+    const escaped = token.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    input.value = input.value.replace(new RegExp('(?:^|\\s)' + escaped + '(?=\\s|$)', 'g'), ' ').replace(/\s+/g, ' ').trim();
+    this.handleQuickInput(input);
+    input.focus();
+  },
+
+  showSyntaxHelp() {
+    App.openModal('Cú pháp ghi nhanh', `
+      <div style="font-size:0.9rem;line-height:1.6">
+        <p>Gõ nhanh nhãn trực tiếp trong ô ý tưởng:</p>
+        <ul style="margin:8px 0 12px 20px">
+          <li><strong>#tag</strong>: ví dụ <code>#phauthuat</code>, <code>#NCKH</code> (tự bóc thành tags)</li>
+          <li><strong>!ưu-tiên</strong>: <code>!cao</code>, <code>!gap</code> (Cao), <code>!quantrong</code> (Quan trọng), <code>!thap</code> (Thấp)</li>
+          <li><strong>@danh-mục</strong>: <code>@lamsang</code>, <code>@nckh</code>, <code>@tech</code>, <code>@canhan</code></li>
+        </ul>
+        <p style="color:var(--text-muted);font-size:0.8rem">Gợi ý: Dòng 1 làm Tiêu đề, các dòng tiếp theo tự động làm Mô tả chi tiết.</p>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary" onclick="App.closeModal()">Đã hiểu</button></div>
+    `);
   },
 
   goToTimeline(filter = {}) {
@@ -195,29 +262,71 @@ var Capture = {
 
   // Smart text parsing: extract #tag, !priority, @category, and split Title / Content
   parseQuickText(rawText) {
+    if (!rawText) return { title: '', content: '', summary: '', category: 'tech', priority: 'medium', tags: [] };
     let text = rawText.trim();
     const tags = [];
     let priority = this.quickPriority || 'medium';
     let category = this.quickCategory || null;
 
-    text = text.replace(/#([\w\u00C0-\u024F\u1E00-\u1EFF-]+)/g, (_, t) => { tags.push(t); return ''; });
     const pMap = { critical:'critical', quantrong:'critical', khancap:'critical', red:'critical', high:'high', cao:'high', gap:'high', low:'low', thap:'low', nhe:'low', medium:'medium', tb:'medium' };
-    text = text.replace(/!([\w\u00C0-\u024F\u1E00-\u1EFF]+)/g, (_, p) => { if (pMap[p.toLowerCase()]) priority = pMap[p.toLowerCase()]; return ''; });
     const cMap = { clinical:'clinical', lamsang:'clinical', benhnhan:'clinical', mo:'clinical', research:'research', nghiencuu:'research', nckh:'research', tech:'tech', congnghe:'tech', it:'tech', personal:'personal', canhan:'personal', business:'business', kinhdoanh:'business' };
-    text = text.replace(/@([\w\u00C0-\u024F\u1E00-\u1EFF]+)/g, (_, c) => { if (cMap[c.toLowerCase()]) category = cMap[c.toLowerCase()]; return ''; });
-    text = text.replace(/\s+/g, ' ').trim();
+
+    // 1. Tags: only preceded by start or whitespace; must start with a letter (avoids #2 or URL #fragments)
+    text = text.replace(/(^|\s)#([a-zA-Z\u00C0-\u024F\u1E00-\u1EFF][\w\u00C0-\u024F\u1E00-\u1EFF-]*)/g, (match, prefix, tag) => {
+      tags.push(tag);
+      return prefix ? ' ' : '';
+    });
+
+    // 2. Priority: only recognized tokens removed, unrecognized kept
+    text = text.replace(/(^|\s)!([\w\u00C0-\u024F\u1E00-\u1EFF-]+)/g, (match, prefix, p) => {
+      const mapped = pMap[p.toLowerCase()];
+      if (mapped) {
+        priority = mapped;
+        return prefix ? ' ' : '';
+      }
+      return match;
+    });
+
+    // 3. Category: only recognized tokens removed, unrecognized kept (avoids email like an@bvbd.vn)
+    text = text.replace(/(^|\s)@([\w\u00C0-\u024F\u1E00-\u1EFF-]+)/g, (match, prefix, c) => {
+      const mapped = cMap[c.toLowerCase()];
+      if (mapped) {
+        category = mapped;
+        return prefix ? ' ' : '';
+      }
+      return match;
+    });
+
+    text = text.replace(/[ \t]+/g, ' ').trim();
 
     if (!category) {
       const lower = (rawText || '').toLowerCase();
-      if (/bệnh nhân|phẫu thuật|mổ|lâm sàng|chẩn đoán|điều trị|biến chứng|đại tràng|trực tràng|nội soi|ung thư/i.test(lower)) category = 'clinical';
-      else if (/nghiên cứu|nckh|đề tài|báo cáo|thống kê|số liệu|cohort|p-value|pubmed|y văn|abstract/i.test(lower)) category = 'research';
-      else if (/ai|deepseek|code|lập trình|app|web|server|database|api|tool|workflow|automation/i.test(lower)) category = 'tech';
-      else category = Store.getSettings().defaultCategory || 'tech';
+      if (/\bAI\b/.test(rawText || '') || /trí tuệ nhân tạo|deepseek|code|lập trình|app|web|server|database|api|tool|workflow|automation/i.test(lower)) {
+        category = 'tech';
+      } else if (/người bệnh|bệnh nhân|phẫu thuật|tai biến|hậu môn nhân tạo|stoma|mổ|lâm sàng|chẩn đoán|điều trị|biến chứng|đại tràng|trực tràng|nội soi|ung thư/i.test(lower)) {
+        category = 'clinical';
+      } else if (/nghiên cứu|nckh|đề tài|báo cáo|thống kê|số liệu|cohort|p-value|pubmed|y văn|abstract/i.test(lower)) {
+        category = 'research';
+      } else {
+        category = Store.getSettings().defaultCategory || 'tech';
+      }
     }
 
     const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    const title = lines.length > 1 ? (lines[0].replace(/[#!@][\w\u00C0-\u024F\u1E00-\u1EFF-]+/g, '').replace(/\s+/g, ' ').trim() || lines[0]) : (text || rawText.trim());
-    const content = lines.length > 1 ? lines.slice(1).join('\n') : '';
+    let title = '';
+    let content = '';
+    if (lines.length > 1) {
+      title = lines[0]
+        .replace(/(^|\s)#([a-zA-Z\u00C0-\u024F\u1E00-\u1EFF][\w\u00C0-\u024F\u1E00-\u1EFF-]*)/g, '')
+        .replace(/(^|\s)!(critical|quantrong|khancap|red|high|cao|gap|low|thap|nhe|medium|tb)\b/gi, '')
+        .replace(/(^|\s)@(clinical|lamsang|benhnhan|mo|research|nghiencuu|nckh|tech|congnghe|it|personal|canhan|business|kinhdoanh)\b/gi, '')
+        .replace(/[ \t]+/g, ' ')
+        .trim() || lines[0];
+      content = lines.slice(1).join('\n');
+    } else {
+      title = text || rawText.trim();
+      content = '';
+    }
 
     return { title: title || 'Ý tưởng không tiêu đề', content, summary: Utils.truncate(content || title, 200), category, priority, tags };
   },
@@ -236,6 +345,9 @@ var Capture = {
 
     const parsed = this.parseQuickText(rawText);
     const idea = Store.addIdea(parsed);
+    if (!idea) {
+      return Utils.showToast('❌ Bộ nhớ đầy. Vui lòng Export sao lưu trong Cài đặt!', 'error', 6000);
+    }
 
     Utils.showToast(`⚡ Ý tưởng #${idea.id.split('-').pop()} đã lưu nhanh!`, 'success');
     input.value = '';
@@ -255,7 +367,7 @@ var Capture = {
   confirmDelete(id) {
     const idea = Store.getIdea(id);
     if (!idea) return;
-    App.openModal('Xác nhận xóa ý tưởng', `<p style="margin-bottom:var(--space-md)">Xóa ý tưởng <strong>"${Utils.escapeHtml(idea.title)}"</strong> (#${idea.id.split('-').pop()})?</p><p style="color:var(--text-tertiary);font-size:0.85rem">Bản thảo liên quan cũng sẽ bị xóa vĩnh viễn.</p><div class="modal-footer"><button class="btn btn-secondary" onclick="App.closeModal()">Hủy</button><button class="btn btn-danger" onclick="Capture.doDelete('${id}')">Xóa vĩnh viễn</button></div>`);
+    App.openModal('Xác nhận xóa', `<p style="margin-bottom:var(--space-md)">Xóa ý tưởng <strong>"${Utils.escapeHtml(idea.title)}"</strong> (#${idea.id.split('-').pop()})?</p><div class="modal-footer"><button class="btn btn-secondary" onclick="App.closeModal()">Hủy</button><button class="btn btn-danger" onclick="Capture.doDelete('${id}')">Xóa vĩnh viễn</button></div>`);
   },
 
   doDelete(id) {
@@ -279,9 +391,13 @@ var Capture = {
     try {
       const draft = await AI.generateDraft(idea, settings);
       if (draft) {
-        Store.addDraft(ideaId, draft);
-        Utils.showToast('✅ Bản thảo AI đã sẵn sàng!', 'success');
-        App.renderCurrentPage();
+        const res = Store.addDraft(ideaId, draft);
+        if (!res) {
+          Utils.showToast('❌ Bộ nhớ đầy! Không thể lưu bản thảo. Vui lòng Export sao lưu!', 'error', 6000);
+        } else {
+          Utils.showToast('✅ Bản thảo AI đã sẵn sàng!', 'success');
+          App.renderCurrentPage();
+        }
       }
     } catch (err) {
       Store.updateIdea(ideaId, { status: 'raw' });

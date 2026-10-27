@@ -58,14 +58,10 @@ var Analytics = {
       d.setDate(d.getDate() - i);
       const dateKey = Store.formatDateId(d);
       const count = ideas.filter(idea => idea.id.startsWith(dateKey)).length;
-      let level = 0;
-      if (count >= 4) level = 4;
-      else if (count >= 3) level = 3;
-      else if (count >= 2) level = 2;
-      else if (count >= 1) level = 1;
-      cells.push({ date: dateKey, count, level });
+      cells.push({ date: dateKey, count, level: Math.min(4, count) });
     }
-    return `<div class="analytics-card" style="grid-column: 1 / -1"><h3>🔥 Activity Heatmap (90 ngày)</h3><div style="overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: var(--space-xs);"><div style="display: grid; grid-template-columns: repeat(${Math.ceil(cells.length / 7)}, 1fr); min-width: 320px; gap: 3px; margin-top: var(--space-md)">${cells.map(c => `<div class="heatmap-cell level-${c.level}" title="${c.date}: ${c.count} ý tưởng" style="aspect-ratio: 1; border-radius: 3px; min-height: 12px"></div>`).join('')}</div></div><div style="display: flex; align-items: center; gap: var(--space-xs); justify-content: flex-end; margin-top: var(--space-sm); font-size: 0.72rem; color: var(--text-muted)">Ít <div class="heatmap-cell" style="width: 12px; height: 12px; display: inline-block; border-radius: 2px"></div><div class="heatmap-cell level-1" style="width: 12px; height: 12px; display: inline-block; border-radius: 2px"></div><div class="heatmap-cell level-2" style="width: 12px; height: 12px; display: inline-block; border-radius: 2px"></div><div class="heatmap-cell level-3" style="width: 12px; height: 12px; display: inline-block; border-radius: 2px"></div><div class="heatmap-cell level-4" style="width: 12px; height: 12px; display: inline-block; border-radius: 2px"></div> Nhiều</div></div>`;
+    const legend = [0,1,2,3,4].map(l => `<div class="heatmap-cell ${l ? 'level-'+l : ''}" style="width:12px;height:12px;display:inline-block;border-radius:2px"></div>`).join('');
+    return `<div class="analytics-card" style="grid-column: 1 / -1"><h3>🔥 Activity Heatmap (90 ngày)</h3><div style="overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: var(--space-xs);"><div style="display: grid; grid-template-columns: repeat(${Math.ceil(cells.length / 7)}, 1fr); min-width: 320px; gap: 3px; margin-top: var(--space-md)">${cells.map(c => `<div class="heatmap-cell level-${c.level}" title="${c.date}: ${c.count} ý tưởng" style="aspect-ratio: 1; border-radius: 3px; min-height: 12px"></div>`).join('')}</div></div><div style="display: flex; align-items: center; gap: var(--space-xs); justify-content: flex-end; margin-top: var(--space-sm); font-size: 0.72rem; color: var(--text-muted)">Ít ${legend} Nhiều</div></div>`;
   },
 
   renderTopTags(ideas) {

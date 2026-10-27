@@ -45,6 +45,15 @@ var Utils = {
     return new Date(dateStr).toDateString() === y.toDateString();
   },
 
+  removeVietnameseTones(str) {
+    if (!str) return '';
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[đĐ]/g, m => (m === 'đ' ? 'd' : 'D'))
+      .toLowerCase();
+  },
+
   nextStatus(status) {
     const order = ['raw', 'reviewed', 'archived'];
     const curIdx = order.indexOf(status?.startsWith('draft') ? 'raw' : status);
@@ -66,11 +75,11 @@ var Utils = {
   // ========================
 
   categories: {
-    research: { label: 'Nghiên cứu', icon: '🔬', color: 'var(--cat-research)' },
-    clinical: { label: 'Lâm sàng', icon: '🏥', color: 'var(--cat-clinical)' },
-    tech: { label: 'Công nghệ', icon: '💻', color: 'var(--cat-tech)' },
-    personal: { label: 'Cá nhân', icon: '👤', color: 'var(--cat-personal)' },
-    business: { label: 'Kinh doanh', icon: '📈', color: 'var(--cat-business)' },
+    research: { label: 'Nghiên cứu', icon: '🔬' },
+    clinical: { label: 'Lâm sàng', icon: '🏥' },
+    tech: { label: 'Công nghệ', icon: '💻' },
+    personal: { label: 'Cá nhân', icon: '👤' },
+    business: { label: 'Kinh doanh', icon: '📈' },
   },
 
   getCategoryLabel(cat) {
@@ -114,12 +123,8 @@ var Utils = {
   },
 
   getStatusClass(status) {
-    if (status === 'raw') return 'status-raw';
-    if (status === 'developing') return 'status-developing';
-    if (status.startsWith('draft')) return 'status-draft';
-    if (status === 'reviewed') return 'status-reviewed';
-    if (status === 'archived') return 'status-archived';
-    return 'status-raw';
+    if (status?.startsWith('draft')) return 'status-draft';
+    return this.statusOptions[status] ? `status-${status}` : 'status-raw';
   },
 
   // ========================
@@ -143,7 +148,7 @@ var Utils = {
       return `<!--CODEBLOCK_${idx}-->`;
     });
 
-    // 3. Tables
+    // 3. Tables (wrapped in overflow container)
     html = html.replace(/((?:^|\n)\|[^\n]+\|\r?\n\|[-:\s|]+\|\r?\n(?:\|[^\n]+\|\r?\n?)+)/g, (match) => {
       const lines = match.trim().split('\n').map(l => l.trim());
       if (lines.length < 2) return match;
@@ -152,37 +157,85 @@ var Utils = {
       const bodyRows = lines.slice(2).map(parseRow);
       const ths = headers.map(h => `<th>${h}</th>`).join('');
       const trs = bodyRows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
-      return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+      return `<div class="table-container" style="overflow-x:auto"><table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div>`;
     });
 
-    // 4. Blockquotes: gộp các dòng liên tiếp bắt đầu bằng &gt;
+    // 4. Horizontal Rules: --- or ***
+    html = html.replace(/^(?:---|\*\*\*)\s*$/gm, '<hr>');
+
+    // 5. Blockquotes: gộp các dòng liên tiếp bắt đầu bằng &gt;
     html = html.replace(/((?:^|\n)&gt;[^\n]+(?:\r?\n&gt;[^\n]+)*)/g, (match) => {
       const content = match.trim().split('\n').map(l => l.replace(/^&gt;\s?/, '')).join('<br>');
       return `<blockquote>${content}</blockquote>`;
     });
 
-    // 5. Headers (h4 đến h1)
-    html = html.replace(/^(#{1,4})\s+(.+)$/gm, (_, h, t) => `<h${h.length}>${t}</h${h.length}>`);
+    // 6. Headers (h1 đến h6)
+    html = html.replace(/^(#{1,6})\s+(.+)$/gm, (_, h, t) => `<h${h.length}>${t}</h${h.length}>`);
 
-    // 6. Bold & Italic
+    // 7. Checklists: - [ ] và - [x]
+    html = html.replace(/^(\s*[-*]\s+)\[ \]\s+/gm, '$1<input type="checkbox" disabled> ');
+    html = html.replace(/^(\s*[-*]\s+)\[[xX]\]\s+/gm, '$1<input type="checkbox" checked disabled> ');
+
+    // 8. Bold & Italic
     html = html
       .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>');
 
-    // 7. Inline code
+    // 9. Inline code
     html = html.replace(/\x60([^\x60]+)\x60/g, '<code>$1</code>');
 
-    // 8. Lists: phân biệt rõ ràng ul và ol
-    html = html.replace(/((?:^|\n)\s*[-*]\s+[^\n]+(?:\r?\n\s*[-*]\s+[^\n]+)*)/g, (match) => {
-      const items = match.trim().split('\n').map(l => `<li>${l.replace(/^\s*[-*]\s+/, '')}</li>`).join('');
-      return `<ul>${items}</ul>`;
-    });
+    // 10. Nested lists (thụt lề 2-4 spaces)
+    const listLines = html.split('\n');
+    const listResult = [];
+    let inList = false;
+    let stack = [];
+    for (let i = 0; i < listLines.length; i++) {
+      const line = listLines[i];
+      const match = line.match(/^(\s*)([-*]|\d+\.)\s+(.*)$/);
+      if (match) {
+        const indent = match[1].length;
+        const isOrdered = /^\d+\./.test(match[2]);
+        const tag = isOrdered ? 'ol' : 'ul';
+        const content = match[3];
 
-    html = html.replace(/((?:^|\n)\s*\d+\.\s+[^\n]+(?:\r?\n\s*\d+\.\s+[^\n]+)*)/g, (match) => {
-      const items = match.trim().split('\n').map(l => `<li>${l.replace(/^\s*\d+\.\s+/, '')}</li>`).join('');
-      return `<ol>${items}</ol>`;
-    });
+        if (!inList) {
+          inList = true;
+          stack = [{ indent, tag }];
+          listResult.push(`<${tag}><li>${content}`);
+        } else {
+          const top = stack[stack.length - 1];
+          if (indent > top.indent) {
+            stack.push({ indent, tag });
+            listResult.push(`<${tag}><li>${content}`);
+          } else if (indent < top.indent) {
+            while (stack.length > 1 && indent < stack[stack.length - 1].indent) {
+              const popped = stack.pop();
+              listResult.push(`</li></${popped.tag}>`);
+            }
+            listResult.push(`</li><li>${content}`);
+          } else {
+            listResult.push(`</li><li>${content}`);
+          }
+        }
+      } else {
+        if (inList) {
+          while (stack.length) {
+            const popped = stack.pop();
+            listResult.push(`</li></${popped.tag}>`);
+          }
+          inList = false;
+        }
+        listResult.push(line);
+      }
+    }
+    if (inList) {
+      while (stack.length) {
+        const popped = stack.pop();
+        listResult.push(`</li></${popped.tag}>`);
+      }
+    }
+    html = listResult.join('\n');
 
     // Restore code blocks
     html = html.replace(/<!--CODEBLOCK_(\d+)-->/g, (_, i) => codeBlocks[Number(i)]);
@@ -193,7 +246,7 @@ var Utils = {
       .map(p => {
         p = p.trim();
         if (!p) return '';
-        if (/^(<(?:h[1-6]|ul|ol|table|blockquote|pre)[ >])/.test(p)) return p;
+        if (/^(<(?:h[1-6]|ul|ol|table|blockquote|pre|hr|div)[ >])/.test(p)) return p;
         return `<p>${p.replace(/\n/g, '<br>')}</p>`;
       })
       .filter(Boolean)
@@ -217,15 +270,8 @@ var Utils = {
     settings: '<circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>',
     delete: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
     edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
-    ai: '<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>',
     back: '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
     export: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
-    sun: '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>',
-    moon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
-    menu: '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>',
-    close: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
-    link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
-    archive: '<polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>',
   },
 
   icon(name, size = 20) {
@@ -237,18 +283,48 @@ var Utils = {
   // TOAST NOTIFICATION
   // ========================
 
-  showToast(message, type = 'info', duration = 3000) {
+  getToastContainer() {
     let c = document.querySelector('.toast-container');
     if (!c) {
       c = document.createElement('div');
       c.className = 'toast-container';
+      c.id = 'toast-container';
+      c.setAttribute('role', 'status');
+      c.setAttribute('aria-live', 'polite');
       document.body.appendChild(c);
     }
+    return c;
+  },
+
+  showToast(message, type = 'info', duration = 3000) {
+    const c = this.getToastContainer();
     const t = document.createElement('div');
     t.className = `toast toast-${type}`;
     t.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span><span>${message}</span>`;
     c.appendChild(t);
     setTimeout(() => {
+      t.style.animation = 'toast-slide-out 0.3s ease forwards';
+      setTimeout(() => t.remove(), 300);
+    }, duration);
+  },
+
+  showToastWithUndo(message, undoFn, duration = 5000) {
+    const c = this.getToastContainer();
+    const t = document.createElement('div');
+    t.className = 'toast toast-info';
+    t.innerHTML = `<span>ℹ️</span><span>${message}</span><button type="button" class="btn btn-sm btn-secondary" id="toast-undo-btn" style="margin-left:8px;padding:3px 10px;font-weight:600;min-height:32px">Hoàn tác</button>`;
+    c.appendChild(t);
+
+    const btn = t.querySelector('#toast-undo-btn');
+    let timer;
+    if (btn) {
+      btn.onclick = () => {
+        clearTimeout(timer);
+        t.remove();
+        if (typeof undoFn === 'function') undoFn();
+      };
+    }
+    timer = setTimeout(() => {
       t.style.animation = 'toast-slide-out 0.3s ease forwards';
       setTimeout(() => t.remove(), 300);
     }, duration);

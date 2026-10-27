@@ -73,6 +73,7 @@ var App = {
   },
 
   viewDraft(ideaId) {
+    if (typeof Draft !== 'undefined') Draft.isEditing = false;
     location.hash = `draft/${ideaId}`;
   },
 
@@ -199,11 +200,10 @@ var App = {
 
   closeModal() {
     const overlay = document.getElementById('modal-overlay');
-    if (overlay) {
-      overlay.classList.remove('active');
-      overlay.setAttribute('aria-hidden', 'true');
-      if (this._boundTrap) overlay.removeEventListener('keydown', this._boundTrap);
-    }
+    if (!overlay || !overlay.classList.contains('active')) return;
+    overlay.classList.remove('active');
+    overlay.setAttribute('aria-hidden', 'true');
+    if (this._boundTrap) overlay.removeEventListener('keydown', this._boundTrap);
 
     document.body.style.cssText = '';
     window.scrollTo(0, this._savedScrollTop || 0);
@@ -248,26 +248,27 @@ var App = {
     const overlay = document.getElementById('sidebar-overlay');
     const btn = document.getElementById('mobile-menu-btn');
     const isOpen = sidebar?.classList.toggle('open');
-    overlay?.classList.toggle('active');
+    overlay?.classList.toggle('active', isOpen);
     overlay?.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
     btn?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   },
 
   closeSidebar() {
-    const sidebar = document.getElementById('sidebar');
+    document.getElementById('sidebar')?.classList.remove('open');
     const overlay = document.getElementById('sidebar-overlay');
-    const btn = document.getElementById('mobile-menu-btn');
-    sidebar?.classList.remove('open');
     overlay?.classList.remove('active');
     overlay?.setAttribute('aria-hidden', 'true');
-    btn?.setAttribute('aria-expanded', 'false');
+    document.getElementById('mobile-menu-btn')?.setAttribute('aria-expanded', 'false');
   },
 
   // Global keyboard shortcuts
   initGlobalShortcuts() {
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        this.closeModal();
+        const overlay = document.getElementById('modal-overlay');
+        if (overlay && overlay.classList.contains('active')) {
+          this.closeModal();
+        }
         this.closeSidebar();
       }
 
@@ -279,20 +280,19 @@ var App = {
         }, 100);
       }
 
+      const toSearch = () => {
+        this.navigate('timeline');
+        setTimeout(() => document.getElementById('timeline-search')?.focus(), 120);
+      };
+
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        this.navigate('timeline');
-        setTimeout(() => {
-          document.getElementById('timeline-search')?.focus();
-        }, 120);
+        toSearch();
       }
 
       if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
         e.preventDefault();
-        this.navigate('timeline');
-        setTimeout(() => {
-          document.getElementById('timeline-search')?.focus();
-        }, 120);
+        toSearch();
       }
     });
 

@@ -4,6 +4,11 @@
    ======================================== */
 
 var AI = {
+  activeJobs: new Set(),
+  isProcessing(ideaId) { return this.activeJobs.has(ideaId); },
+  lock(ideaId) { this.activeJobs.add(ideaId); },
+  unlock(ideaId) { this.activeJobs.delete(ideaId); },
+
   async generateDraft(idea, settings) {
     const prompt = `Bạn là trợ lý cố vấn chiến lược y khoa & công nghệ cho BS. Vũ Khương An (BV Bình Dân, TP.HCM).
 Phát triển ý tưởng sau thành bản thảo chuyên nghiệp:
@@ -32,9 +37,22 @@ Yêu cầu bản thảo Markdown tiếng Việt:
     return await this.call(prompt, settings);
   },
 
-  async processAction(action, idea, settings) {
-    const lastDraft = idea.drafts?.length ? idea.drafts[idea.drafts.length - 1].content : '';
-    const base = `Ý tưởng: "${idea.title}" (${idea.category}/${idea.priority})\nNội dung: ${idea.content || idea.title}${lastDraft ? `\nBản thảo trước: ${lastDraft.substring(0, 1000)}...` : ''}`;
+  async processAction(action, idea, settings, targetVersion = -1) {
+    let targetDraft = '';
+    if (idea.drafts && idea.drafts.length > 0) {
+      const idx = (targetVersion >= 0 && targetVersion < idea.drafts.length)
+        ? targetVersion
+        : idea.drafts.length - 1;
+      targetDraft = idea.drafts[idx]?.content || '';
+    }
+
+    let draftText = targetDraft;
+    const MAX_DRAFT_CHARS = 24000;
+    if (draftText.length > MAX_DRAFT_CHARS) {
+      draftText = draftText.substring(0, MAX_DRAFT_CHARS) + '\n\n[...Đã rút gọn vì vượt quá 24.000 ký tự...]';
+    }
+
+    const base = `Ý tưởng: "${idea.title}" (${idea.category}/${idea.priority})\nNội dung: ${idea.content || idea.title}${draftText ? `\nBản thảo trước:\n${draftText}` : ''}`;
     const templates = {
       summarize: 'Tóm tắt nội dung sau thành 200-300 từ súc tích:',
       expand: 'Phân tích sâu và mở rộng ý tưởng sau với số liệu, luận cứ y khoa/công nghệ:',

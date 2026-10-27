@@ -262,6 +262,35 @@
   min-width: 0;
 }
 
+.idea-card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  margin-bottom: 4px;
+}
+
+.idea-card-seq-cat {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.idea-card-title-row {
+  margin-bottom: 6px;
+}
+
+.idea-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin: 0;
+}
+
 .idea-card-header {
   display: flex;
   align-items: flex-start;
@@ -270,11 +299,61 @@
   margin-bottom: var(--space-sm);
 }
 
-.idea-card-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.4;
+.desktop-only-action {
+  display: inline-flex;
+}
+
+.mobile-more-action {
+  display: none;
+}
+
+.timeline-flat-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.select-mode-btn {
+  font-weight: 600;
+}
+
+.select-mode-btn.active {
+  background: var(--primary-bg);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.idea-card-title-link {
+  color: inherit;
+  text-decoration: none;
+  flex: 1;
+  display: inline-block;
+  min-height: 24px;
+}
+
+.idea-card-title-link::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+.idea-card-actions,
+.idea-card-meta,
+.idea-card-select {
+  position: relative;
+  z-index: 2;
+}
+
+button.filter-chip,
+button.active-tag-chip,
+button.chip,
+button.status-badge {
+  font-family: inherit;
+  outline: none;
 }
 
 .idea-card-summary {
@@ -389,16 +468,6 @@
   font-weight: 600;
 }
 
-/* Pagination */
-.timeline-pagination {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-sm);
-  margin-top: var(--space-xl);
-  padding-top: var(--space-lg);
-  border-top: 1px solid var(--border-light);
-}
-
 /* Idea selection & card highlight */
 .idea-card.selected {
   border-color: var(--primary);
@@ -410,12 +479,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
   padding-right: 4px;
 }
 
 .idea-select-check {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
   cursor: pointer;
   accent-color: var(--primary);
   border-radius: 4px;

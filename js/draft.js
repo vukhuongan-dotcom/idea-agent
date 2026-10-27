@@ -11,6 +11,7 @@ var Draft = {
 
   render(ideaId) {
     this.currentIdeaId = ideaId;
+    this.isEditing = false;
     const idea = Store.getIdea(ideaId);
 
     if (!idea) {
@@ -19,7 +20,7 @@ var Draft = {
 
     this.currentVersion = idea.drafts && idea.drafts.length > 0 ? idea.drafts.length - 1 : -1;
 
-    return `<div class="draft-nav"><button class="back-btn" onclick="App.navigate('timeline')">${Utils.icon('back', 16)} Quay lại</button><div style="display:flex; align-items:center; gap:var(--space-sm); flex-wrap:wrap"><span class="chip chip-${idea.category} chip-category">${Utils.getCategoryIcon(idea.category)} ${Utils.getCategoryLabel(idea.category)}</span><span class="priority-badge priority-${idea.priority}"><span class="priority-dot"></span> ${Utils.getPriorityLabel(idea.priority)}</span><span class="status-badge ${Utils.getStatusClass(idea.status)}" onclick="Draft.quickChangeStatus()" style="cursor:pointer" title="Bấm để đổi nhanh trạng thái">${Utils.getStatusLabel(idea.status)} ▾</span></div></div><div class="draft-mobile-segmented" id="draft-mobile-tabs"><button type="button" class="draft-mobile-tab ${this.mobileActiveTab === 'original' ? 'active' : ''}" onclick="Draft.switchMobileTab('original')">💡 Ý tưởng gốc</button><button type="button" class="draft-mobile-tab ${this.mobileActiveTab === 'draft' ? 'active' : ''}" onclick="Draft.switchMobileTab('draft')">📝 Bản thảo AI ${idea.drafts?.length ? `(v${idea.drafts.length})` : ''}</button></div><div class="draft-container ${this.mobileActiveTab === 'original' ? 'show-original' : 'show-draft'}">${this.renderOriginal(idea)}${this.renderDraftPanel(idea)}</div>`;
+    return `<div class="draft-nav"><button class="back-btn" onclick="App.navigate('timeline')">${Utils.icon('back', 16)} Quay lại</button><span class="draft-nav-title" title="${Utils.escapeHtml(idea.title)}">${Utils.escapeHtml(Utils.truncate(idea.title, 25))}</span><div class="draft-nav-meta"><span class="chip chip-${idea.category} chip-category">${Utils.getCategoryIcon(idea.category)} ${Utils.getCategoryLabel(idea.category)}</span><span class="priority-badge priority-${idea.priority}"><span class="priority-dot"></span> ${Utils.getPriorityLabel(idea.priority)}</span><button type="button" class="status-badge ${Utils.getStatusClass(idea.status)}" onclick="Draft.openStatusMenu(event)" title="Bấm để đổi trạng thái">${Utils.getStatusLabel(idea.status)} ▾</button></div><button type="button" class="btn btn-icon btn-ghost draft-mobile-menu-btn" onclick="Draft.openMobileMenu()" title="Tùy chọn bản thảo" aria-label="Tùy chọn bản thảo">⋯</button></div><div class="draft-mobile-segmented" id="draft-mobile-tabs"><button type="button" class="draft-mobile-tab ${this.mobileActiveTab === 'original' ? 'active' : ''}" onclick="Draft.switchMobileTab('original')">💡 Ý tưởng gốc</button><button type="button" class="draft-mobile-tab ${this.mobileActiveTab === 'draft' ? 'active' : ''}" onclick="Draft.switchMobileTab('draft')">📝 Bản thảo AI ${idea.drafts?.length ? `(v${idea.drafts.length})` : ''}</button></div><div class="draft-container ${this.mobileActiveTab === 'original' ? 'show-original' : 'show-draft'}">${this.renderOriginal(idea)}${this.renderDraftPanel(idea)}</div>`;
   },
 
   switchMobileTab(tab) {
@@ -40,9 +41,21 @@ var Draft = {
   },
 
   renderDraftPanel(idea) {
+    const isWorking = typeof AI !== 'undefined' && AI.isProcessing(idea.id);
     const hasDrafts = idea.drafts && idea.drafts.length > 0;
-    const more = hasDrafts ? [['summarize','📋','Tóm tắt'],['expand','🔍','Chi tiết hóa'],['critique','🎯','Phản biện'],['actionplan','📊','Action Plan']] : [];
-    return `<div class="draft-panel" id="draft-panel-area"><div class="draft-panel-header"><div class="draft-panel-title">📝 Bản thảo <span class="ai-badge">🤖 DeepSeek AI</span></div><div class="draft-actions-top">${hasDrafts ? `<button class="btn btn-ghost btn-sm" onclick="Draft.copyMarkdown()" title="Sao chép Markdown">📋 Copy</button><button class="btn btn-ghost btn-sm" onclick="Draft.toggleEdit()" id="draft-edit-btn" title="Chỉnh sửa">${Utils.icon('edit', 16)} ${this.isEditing ? 'Lưu' : 'Sửa'}</button><button class="btn btn-ghost btn-sm" onclick="Draft.exportDraft()" title="Tải file .md">${Utils.icon('export', 16)} Export</button>` : ''}</div></div>${hasDrafts ? this.renderVersionTabs(idea) : ''}<div class="draft-content" id="draft-content-area">${hasDrafts ? this.renderDraftContent(idea) : this.renderNoDraft(idea)}</div><div class="ai-actions" id="ai-actions-bar"><button class="ai-action-btn primary" onclick="Draft.triggerGenerate('${idea.id}')"><span class="ai-icon">✨</span> ${hasDrafts ? 'Tạo bản mới' : 'Tạo bản thảo AI'}</button><button class="ai-action-btn" onclick="Draft.requestAI('research_pico', '${idea.id}')" title="Đề cương PICO"><span class="ai-icon">🔬</span> Đề cương PICO</button><button class="ai-action-btn" onclick="Draft.requestAI('hospital_initiative', '${idea.id}')" title="Sáng kiến BV"><span class="ai-icon">🏥</span> Sáng kiến BV</button>${more.map(([act, ico, lbl]) => `<button class="ai-action-btn" onclick="Draft.requestAI('${act}', '${idea.id}')"><span class="ai-icon">${ico}</span> ${lbl}</button>`).join('')}<button class="ai-action-btn" onclick="Draft.openCustomPromptModal('${idea.id}')" title="Yêu cầu riêng"><span class="ai-icon">💬</span> Yêu cầu riêng...</button></div></div>`;
+    const dis = isWorking ? 'disabled' : '';
+    const acts = [
+      { k: 'research_pico', i: '🔬', l: 'Đề cương PICO' },
+      { k: 'hospital_initiative', i: '🏥', l: 'Sáng kiến BV' },
+      ...(hasDrafts ? [
+        { k: 'summarize', i: '📋', l: 'Tóm tắt' },
+        { k: 'expand', i: '🔍', l: 'Chi tiết hóa' },
+        { k: 'critique', i: '🎯', l: 'Phản biện' },
+        { k: 'actionplan', i: '📊', l: 'Action Plan' }
+      ] : [])
+    ];
+
+    return `<div class="draft-panel" id="draft-panel-area"><div class="draft-panel-header"><div class="draft-panel-title">📝 Bản thảo <span class="ai-badge">🤖 DeepSeek AI</span></div><div class="draft-actions-top">${hasDrafts ? `<button class="btn btn-ghost btn-sm" onclick="Draft.copyMarkdown()" title="Sao chép Markdown">📋 Copy</button><button class="btn btn-ghost btn-sm" onclick="Draft.toggleEdit()" id="draft-edit-btn" title="Chỉnh sửa">${Utils.icon('edit', 16)} ${this.isEditing ? 'Lưu' : 'Sửa'}</button><button class="btn btn-ghost btn-sm" onclick="Draft.exportDraft()" title="Tải file .md">${Utils.icon('export', 16)} Export</button>` : ''}</div></div>${hasDrafts ? this.renderVersionTabs(idea) : ''}<div class="draft-content" id="draft-content-area">${isWorking ? `<div class="draft-processing"><div class="draft-processing-spinner"></div><div class="draft-processing-text">🤖 DeepSeek AI đang phân tích và soạn thảo...</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:6px">Vui lòng chờ trong giây lát...</div></div>` : (hasDrafts ? this.renderDraftContent(idea) : this.renderNoDraft(idea))}</div><div class="ai-actions" id="ai-actions-bar"><button class="ai-action-btn primary" ${dis} onclick="Draft.triggerGenerate('${idea.id}')"><span class="ai-icon">✨</span> ${hasDrafts ? 'Tạo bản mới' : 'Tạo bản thảo AI'}</button>${acts.map(a => `<button class="ai-action-btn" ${dis} onclick="Draft.requestAI('${a.k}', '${idea.id}')"><span class="ai-icon">${a.i}</span> ${a.l}</button>`).join('')}<button class="ai-action-btn" ${dis} onclick="Draft.openCustomPromptModal('${idea.id}')" title="Yêu cầu riêng"><span class="ai-icon">💬</span> Yêu cầu riêng...</button></div><div class="draft-mobile-bottom-actions" id="draft-mobile-bottom-actions"><button type="button" class="btn btn-primary draft-mobile-act-btn" ${dis} onclick="Draft.triggerGenerate('${idea.id}')">✨ Phát triển</button><button type="button" class="btn btn-secondary draft-mobile-act-btn" ${dis} onclick="Draft.openCustomPromptModal('${idea.id}')">💬 Yêu cầu</button><button type="button" class="btn btn-secondary draft-mobile-act-btn" ${dis} onclick="Draft.openMoreActionsSheet('${idea.id}')">⋯ Thêm</button></div></div>`;
   },
 
   renderVersionTabs(idea) {
@@ -129,14 +142,51 @@ var Draft = {
     if (typeof Timeline !== 'undefined') Timeline.editIdea(this.currentIdeaId);
   },
 
+  openStatusMenu(e) {
+    if (typeof Timeline !== 'undefined') Timeline.openStatusMenu(this.currentIdeaId, e);
+  },
+
   quickChangeStatus() {
+    this.openStatusMenu();
+  },
+
+  openMobileMenu() {
     const idea = Store.getIdea(this.currentIdeaId);
     if (!idea) return;
-    const nextStatus = Utils.nextStatus(idea.status);
-    Store.updateIdea(this.currentIdeaId, { status: nextStatus });
-    Utils.showToast(`Đã đổi trạng thái: ${Utils.getStatusLabel(nextStatus)}`, 'success');
-    App.renderCurrentPage();
-    App.updateSidebarStats();
+    const body = `
+      <div style="display:flex;flex-direction:column;gap:8px;padding:var(--space-xs) 0">
+        <p style="margin-bottom:8px;color:var(--text-secondary);font-size:0.875rem">#${idea.id.split('-').pop()} — <strong>${Utils.escapeHtml(idea.title)}</strong></p>
+        <button type="button" class="btn btn-secondary" onclick="App.closeModal(); Draft.copyMarkdown()" style="justify-content:flex-start;min-height:44px;font-size:0.9rem">📋 Sao chép Markdown</button>
+        <button type="button" class="btn btn-secondary" onclick="App.closeModal(); Draft.editOriginalIdea()" style="justify-content:flex-start;min-height:44px;font-size:0.9rem">✏️ Sửa ý tưởng gốc</button>
+        <button type="button" class="btn btn-secondary" onclick="App.closeModal(); Draft.exportDraft()" style="justify-content:flex-start;min-height:44px;font-size:0.9rem">📥 Tải file Markdown (.md)</button>
+        <button type="button" class="btn btn-secondary" onclick="App.closeModal(); Draft.openStatusMenu()" style="justify-content:flex-start;min-height:44px;font-size:0.9rem">🏷️ Đổi trạng thái...</button>
+      </div>
+    `;
+    App.openModal('Tùy chọn bản thảo', body);
+  },
+
+  openMoreActionsSheet(ideaId) {
+    const idea = Store.getIdea(ideaId);
+    if (!idea) return;
+    const acts = [
+      { k: 'research_pico', i: '🔬', l: 'Đề cương NCKH (PICO)' },
+      { k: 'hospital_initiative', i: '🏥', l: 'Sáng kiến Cải tiến BV' },
+      { k: 'summarize', i: '📋', l: 'Tóm tắt nội dung' },
+      { k: 'expand', i: '🔍', l: 'Chi tiết hóa ý tưởng' },
+      { k: 'critique', i: '🎯', l: 'Phản biện chuyên môn' },
+      { k: 'actionplan', i: '📊', l: 'Lập Kế hoạch Hành động' }
+    ];
+    const body = `
+      <div style="display:flex;flex-direction:column;gap:8px;padding:var(--space-xs) 0">
+        <p style="margin-bottom:8px;color:var(--text-secondary);font-size:0.875rem">Chọn tác vụ phát triển với DeepSeek AI:</p>
+        ${acts.map(a => `
+          <button type="button" class="btn btn-secondary" onclick="App.closeModal(); Draft.requestAI('${a.k}', '${ideaId}')" style="justify-content:flex-start;min-height:44px;font-size:0.9rem">
+            ${a.i} ${a.l}
+          </button>
+        `).join('')}
+      </div>
+    `;
+    App.openModal('Tác vụ AI nâng cao', body);
   },
 
   setProcessingState(isProcessing, message = '🤖 DeepSeek AI đang phân tích và soạn thảo...') {
@@ -148,10 +198,12 @@ var Draft = {
     }
   },
 
-  async triggerGenerate(ideaId) {
+  async runAI(ideaId, taskName, taskFn) {
     const idea = Store.getIdea(ideaId);
     if (!idea) return;
-
+    if (typeof AI !== 'undefined' && AI.isProcessing(ideaId)) {
+      return Utils.showToast('⚠️ AI đang xử lý cho ý tưởng này. Vui lòng chờ!', 'info');
+    }
     const settings = Store.getSettings();
     if (!settings.geminiApiKey) {
       Utils.showToast('Vui lòng nhập API Key trong Cài đặt', 'error');
@@ -159,65 +211,50 @@ var Draft = {
       return;
     }
 
-    this.setProcessingState(true, '🤖 DeepSeek AI đang phát triển bản thảo chi tiết...');
+    AI.lock(ideaId);
+    this.setProcessingState(true, `🤖 DeepSeek AI ${taskName}...`);
 
     try {
-      const draft = await GeminiAI.generateDraft(idea, settings);
-      if (draft) {
-        Store.addDraft(ideaId, draft);
-        Utils.showToast('✅ Bản thảo AI đã sẵn sàng!', 'success');
-        this.mobileActiveTab = 'draft';
-        App.renderCurrentPage();
+      const result = await taskFn(idea, settings);
+      if (result) {
+        const res = Store.addDraft(ideaId, result);
+        if (!res) {
+          Utils.showToast('❌ Không thể lưu bản thảo (bộ nhớ đầy). Vui lòng Export sao lưu!', 'error', 6000);
+        } else {
+          Utils.showToast('✅ Bản thảo AI đã sẵn sàng!', 'success');
+          this.mobileActiveTab = 'draft';
+        }
       }
     } catch (err) {
-      console.error('Draft error:', err);
-      this.setProcessingState(false);
+      console.error('AI error:', err);
       Utils.showToast('❌ Lỗi: ' + err.message, 'error');
-      App.renderCurrentPage();
+    } finally {
+      AI.unlock(ideaId);
+      if (App.currentPage === 'draft' && this.currentIdeaId === ideaId) {
+        this.setProcessingState(false);
+        App.renderCurrentPage();
+      }
     }
   },
 
-  async requestAI(action, ideaId, customPrompt) {
-    const idea = Store.getIdea(ideaId);
-    if (!idea) return;
+  triggerGenerate(ideaId) {
+    return this.runAI(ideaId, 'đang phát triển bản thảo chi tiết', (idea, settings) => AI.generateDraft(idea, settings));
+  },
 
-    const settings = Store.getSettings();
-    if (!settings.geminiApiKey) {
-      Utils.showToast('Vui lòng nhập API Key trong Cài đặt', 'error');
-      App.navigate('settings');
-      return;
-    }
-
-    if (customPrompt) {
-      settings.customPrompt = customPrompt;
-    }
-
+  requestAI(action, ideaId, customPrompt) {
     const actionLabels = {
-      research_pico: 'đang lập Đề cương NCKH PICO...',
-      hospital_initiative: 'đang soạn Sáng kiến Cải tiến BV...',
-      summarize: 'đang tóm tắt ý tưởng...',
-      expand: 'đang chi tiết hóa nội dung...',
-      critique: 'đang phản biện chuyên môn...',
-      actionplan: 'đang lập Action Plan...',
-      custom: 'đang xử lý yêu cầu riêng...'
+      research_pico: 'đang lập Đề cương NCKH PICO',
+      hospital_initiative: 'đang soạn Sáng kiến Cải tiến BV',
+      summarize: 'đang tóm tắt ý tưởng',
+      expand: 'đang chi tiết hóa nội dung',
+      critique: 'đang phản biện chuyên môn',
+      actionplan: 'đang lập Action Plan',
+      custom: 'đang xử lý yêu cầu riêng'
     };
-
-    this.setProcessingState(true, `🤖 DeepSeek AI ${actionLabels[action] || 'đang xử lý...'}`);
-
-    try {
-      const result = await AI.processAction(action, idea, settings);
-      if (result) {
-        Store.addDraft(ideaId, result);
-        Utils.showToast('✅ Đã tạo bản thảo mới!', 'success');
-        this.mobileActiveTab = 'draft';
-        App.renderCurrentPage();
-      }
-    } catch (err) {
-      console.error('AI action error:', err);
-      this.setProcessingState(false);
-      Utils.showToast('❌ Lỗi: ' + err.message, 'error');
-      App.renderCurrentPage();
-    }
+    return this.runAI(ideaId, actionLabels[action] || 'đang xử lý', (idea, settings) => {
+      if (customPrompt) settings.customPrompt = customPrompt;
+      return AI.processAction(action, idea, settings, this.currentVersion);
+    });
   },
 
   openCustomPromptModal(ideaId) {

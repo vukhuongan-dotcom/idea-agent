@@ -42,6 +42,10 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg-primary);
@@ -621,11 +625,6 @@ a:hover {
   to { transform: translateY(0); opacity: 1; }
 }
 
-@keyframes slide-in-right {
-  from { transform: translateX(20px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
 @keyframes scale-in {
   from { transform: scale(0.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
@@ -633,10 +632,6 @@ a:hover {
 
 .animate-slide-up {
   animation: slide-up 0.4s ease both;
-}
-
-.animate-slide-in {
-  animation: slide-in-right 0.4s ease both;
 }
 
 .animate-scale-in {
