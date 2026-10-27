@@ -18,9 +18,7 @@ var Utils = {
   formatDateFull(dateStr) {
     const d = new Date(dateStr);
     const days = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-    const months = ['tháng 1', 'tháng 2', 'tháng 3', 'tháng 4', 'tháng 5', 'tháng 6',
-                    'tháng 7', 'tháng 8', 'tháng 9', 'tháng 10', 'tháng 11', 'tháng 12'];
-    return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    return `${days[d.getDay()]}, ${d.getDate()} tháng ${d.getMonth() + 1}, ${d.getFullYear()}`;
   },
 
   formatTime(dateStr) {
@@ -29,31 +27,28 @@ var Utils = {
   },
 
   formatRelative(dateStr) {
-    const now = new Date();
-    const d = new Date(dateStr);
-    const diff = now - d;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'Vừa xong';
-    if (minutes < 60) return `${minutes} phút trước`;
-    if (hours < 24) return `${hours} giờ trước`;
-    if (days < 7) return `${days} ngày trước`;
+    const diff = (Date.now() - new Date(dateStr)) / 1000;
+    const m = Math.floor(diff / 60), h = Math.floor(diff / 3600), d = Math.floor(diff / 86400);
+    if (m < 1) return 'Vừa xong';
+    if (m < 60) return `${m} phút trước`;
+    if (h < 24) return `${h} giờ trước`;
+    if (d < 7) return `${d} ngày trước`;
     return this.formatDate(dateStr);
   },
 
   isToday(dateStr) {
-    const d = new Date(dateStr);
-    const today = new Date();
-    return d.toDateString() === today.toDateString();
+    return new Date(dateStr).toDateString() === new Date().toDateString();
   },
 
   isYesterday(dateStr) {
-    const d = new Date(dateStr);
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return d.toDateString() === yesterday.toDateString();
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    return new Date(dateStr).toDateString() === y.toDateString();
+  },
+
+  nextStatus(status) {
+    const order = ['raw', 'reviewed', 'archived'];
+    const curIdx = order.indexOf(status?.startsWith('draft') ? 'raw' : status);
+    return order[(curIdx + 1) % order.length] || 'reviewed';
   },
 
   getDateLabel(dateKey) {
@@ -105,12 +100,16 @@ var Utils = {
   // STATUS
   // ========================
 
+  statusOptions: {
+    raw: { label: '💭 Ý tưởng thô' },
+    developing: { label: '⚙️ Đang phát triển' },
+    reviewed: { label: '✅ Đã review' },
+    archived: { label: '📦 Lưu trữ' }
+  },
+
   getStatusLabel(status) {
-    if (status === 'raw') return 'Ý tưởng thô';
-    if (status === 'developing') return 'Đang phát triển';
-    if (status.startsWith('draft_v')) return `Bản thảo v${status.split('v')[1]}`;
-    if (status === 'reviewed') return 'Đã review';
-    if (status === 'archived') return 'Lưu trữ';
+    if (this.statusOptions[status]) return this.statusOptions[status].label;
+    if (status?.startsWith('draft_v')) return `Bản thảo v${status.split('v')[1]}`;
     return status;
   },
 
@@ -163,11 +162,7 @@ var Utils = {
     });
 
     // 5. Headers (h4 đến h1)
-    html = html
-      .replace(/^#### (.*$)/gim, '<h4>$1</h4>')
-      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1>$1</h1>');
+    html = html.replace(/^(#{1,4})\s+(.+)$/gm, (_, h, t) => `<h${h.length}>${t}</h${h.length}>`);
 
     // 6. Bold & Italic
     html = html
@@ -176,7 +171,7 @@ var Utils = {
       .replace(/\*(.*?)\*/g, '<em>$1</em>');
 
     // 7. Inline code
-    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    html = html.replace(/\x60([^\x60]+)\x60/g, '<code>$1</code>');
 
     // 8. Lists: phân biệt rõ ràng ul và ol
     html = html.replace(/((?:^|\n)\s*[-*]\s+[^\n]+(?:\r?\n\s*[-*]\s+[^\n]+)*)/g, (match) => {
@@ -192,11 +187,6 @@ var Utils = {
     // Restore code blocks
     html = html.replace(/<!--CODEBLOCK_(\d+)-->/g, (_, i) => codeBlocks[Number(i)]);
 
-    // Test fixture compatibility
-    if (text.includes('#### H4') && text.includes('| A | B |') && !html.includes('<pre>')) {
-      html += '<pre><code></code></pre>';
-    }
-
     // Paragraph formatting
     return html
       .split(/\n{2,}/)
@@ -210,33 +200,37 @@ var Utils = {
       .join('\n');
   },
 
+  renderOptions(obj, sel) {
+    return Object.entries(obj).map(([k, v]) => `<option value="${k}" ${sel === k ? 'selected' : ''}>${v.icon ? v.icon + ' ' : ''}${v.label}</option>`).join('');
+  },
+
   // ========================
   // SVG ICONS
   // ========================
 
   icons: {
-    capture: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
-    timeline: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
-    draft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
-    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
-    analytics: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>',
-    settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>',
-    delete: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
-    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
-    ai: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',
-    back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>',
-    export: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
-    sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>',
-    moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
-    menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>',
-    close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-    link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
-    archive: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',
+    capture: '<path d="M12 5v14M5 12h14"/>',
+    timeline: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+    draft: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+    search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    analytics: '<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>',
+    settings: '<circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>',
+    delete: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+    edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
+    ai: '<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>',
+    back: '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+    export: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    sun: '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>',
+    moon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+    menu: '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>',
+    close: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+    archive: '<polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>',
   },
 
   icon(name, size = 20) {
-    const svg = this.icons[name] || '';
-    return svg.replace('<svg', `<svg width="${size}" height="${size}"`);
+    const inner = this.icons[name] || '';
+    return inner ? `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${inner}</svg>` : '';
   },
 
   // ========================
@@ -244,25 +238,19 @@ var Utils = {
   // ========================
 
   showToast(message, type = 'info', duration = 3000) {
-    let container = document.querySelector('.toast-container');
-    if (!container) {
-      container = document.createElement('div');
-      container.className = 'toast-container';
-      document.body.appendChild(container);
+    let c = document.querySelector('.toast-container');
+    if (!c) {
+      c = document.createElement('div');
+      c.className = 'toast-container';
+      document.body.appendChild(c);
     }
-
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-      <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
-      <span>${message}</span>
-    `;
-
-    container.appendChild(toast);
-
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span><span>${message}</span>`;
+    c.appendChild(t);
     setTimeout(() => {
-      toast.style.animation = 'toast-slide-out 0.3s ease forwards';
-      setTimeout(() => toast.remove(), 300);
+      t.style.animation = 'toast-slide-out 0.3s ease forwards';
+      setTimeout(() => t.remove(), 300);
     }, duration);
   },
 
@@ -302,14 +290,34 @@ var Utils = {
   // ========================
 
   downloadFile(content, filename, mimeType = 'text/plain') {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
+    const url = URL.createObjectURL(new Blob([content], { type: mimeType }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: filename });
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
+    a.remove();
     URL.revokeObjectURL(url);
+  },
+
+  // ========================
+  // CLIPBOARD COPY
+  // ========================
+
+  async copyToClipboard(text, successMsg = '📋 Đã sao chép vào clipboard!') {
+    if (!text) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = Object.assign(document.createElement('textarea'), { value: text });
+        textarea.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+      }
+      this.showToast(successMsg, 'success');
+    } catch (e) {
+      this.showToast('Không thể sao chép: ' + e.message, 'error');
+    }
   },
 };

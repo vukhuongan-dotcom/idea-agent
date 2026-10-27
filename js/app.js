@@ -21,6 +21,12 @@ var App = {
     const settings = Store.getSettings();
     document.documentElement.setAttribute('data-theme', settings.theme || 'dark');
 
+    // Khôi phục trạng thái thu gọn sidebar trên màn hình lớn
+    if (window.innerWidth > 1024 && localStorage.getItem('idea-agent-sidebar-collapsed') === '1') {
+      document.getElementById('sidebar')?.classList.add('collapsed');
+      document.body.classList.add('sidebar-collapsed');
+    }
+
     this.handleRoute();
     window.addEventListener('hashchange', () => this.handleRoute());
 
@@ -151,14 +157,9 @@ var App = {
   updateAIStatusBadge() {
     const badge = document.getElementById('ai-status-badge');
     if (!badge) return;
-    const settings = Store.getSettings();
-    if (settings.geminiApiKey) {
-      badge.textContent = '🟢 AI sẵn sàng';
-      badge.className = 'ai-status connected';
-    } else {
-      badge.textContent = '🔴 Chưa có API Key';
-      badge.className = 'ai-status disconnected';
-    }
+    const ok = Boolean(Store.getSettings().geminiApiKey);
+    badge.textContent = ok ? '🟢 AI sẵn sàng' : '🔴 Chưa có API Key';
+    badge.className = 'ai-status ' + (ok ? 'connected' : 'disconnected');
   },
 
   toggleTheme() {
@@ -180,23 +181,16 @@ var App = {
     if (modalTitle) modalTitle.textContent = title;
     if (modalBody) modalBody.innerHTML = bodyHTML;
 
-    // 2.3: Scroll-lock cho body (tránh nền cuộn xuyên qua trên iOS/Mobile)
     this._savedScrollTop = window.scrollY || document.documentElement.scrollTop || 0;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${this._savedScrollTop}px`;
-    document.body.style.width = '100%';
-    document.body.style.overflow = 'hidden';
+    document.body.style.cssText = `position:fixed;top:-${this._savedScrollTop}px;width:100%;overflow:hidden`;
 
     overlay.classList.add('active');
     overlay.setAttribute('aria-hidden', 'false');
 
-    // Focus first focusable element
     setTimeout(() => {
-      const focusable = overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-      focusable[0]?.focus();
+      overlay.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
     }, 50);
 
-    // Focus trap dùng đúng tham chiếu cố định
     if (this._boundTrap) {
       overlay.removeEventListener('keydown', this._boundTrap);
       overlay.addEventListener('keydown', this._boundTrap);
@@ -208,19 +202,12 @@ var App = {
     if (overlay) {
       overlay.classList.remove('active');
       overlay.setAttribute('aria-hidden', 'true');
-      if (this._boundTrap) {
-        overlay.removeEventListener('keydown', this._boundTrap);
-      }
+      if (this._boundTrap) overlay.removeEventListener('keydown', this._boundTrap);
     }
 
-    // 2.3: Gỡ scroll-lock và khôi phục vị trí cuộn
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.width = '';
-    document.body.style.overflow = '';
+    document.body.style.cssText = '';
     window.scrollTo(0, this._savedScrollTop || 0);
 
-    // Return focus to trigger
     this._lastFocusedEl?.focus();
     this._lastFocusedEl = null;
   },
@@ -238,6 +225,20 @@ var App = {
       if (document.activeElement === first) { e.preventDefault(); last.focus(); }
     } else {
       if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  },
+
+  // Desktop sidebar collapse toggle
+  toggleSidebarCollapse() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    document.body.classList.toggle('sidebar-collapsed', isCollapsed);
+    localStorage.setItem('idea-agent-sidebar-collapsed', isCollapsed ? '1' : '0');
+    const toggleBtn = document.getElementById('sidebar-collapse-btn');
+    if (toggleBtn) {
+      toggleBtn.innerHTML = isCollapsed ? '»' : '«';
+      toggleBtn.setAttribute('title', isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar');
     }
   },
 
@@ -276,6 +277,22 @@ var App = {
         setTimeout(() => {
           document.getElementById('quick-capture-input')?.focus();
         }, 100);
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        this.navigate('timeline');
+        setTimeout(() => {
+          document.getElementById('timeline-search')?.focus();
+        }, 120);
+      }
+
+      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
+        e.preventDefault();
+        this.navigate('timeline');
+        setTimeout(() => {
+          document.getElementById('timeline-search')?.focus();
+        }, 120);
       }
     });
 

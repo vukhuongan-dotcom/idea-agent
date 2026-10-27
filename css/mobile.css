@@ -143,13 +143,39 @@
     font-size: 0.88rem;
   }
 
+  .quick-capture-buttons {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
   .quick-capture-btn {
     width: auto;
     justify-content: center;
     min-height: 44px;
-    padding: 0 14px;
-    font-size: 0.82rem;
+    padding: 0 10px;
+    font-size: 0.8rem;
     flex-shrink: 0;
+  }
+
+  .quick-capture-more-btn {
+    width: auto;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 8px;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+  }
+
+  .quick-capture-meta-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .quick-capture-meta-bar::-webkit-scrollbar {
+    display: none;
   }
 
   /* Stats grid */
@@ -200,8 +226,28 @@
   }
 
   /* Draft view */
+  .draft-mobile-segmented {
+    display: flex;
+  }
+
   .draft-container {
     grid-template-columns: 1fr;
+  }
+
+  .draft-container.show-original #draft-panel-area {
+    display: none !important;
+  }
+
+  .draft-container.show-original #draft-original-panel {
+    display: block !important;
+  }
+
+  .draft-container.show-draft #draft-original-panel {
+    display: none !important;
+  }
+
+  .draft-container.show-draft #draft-panel-area {
+    display: block !important;
   }
 
   .draft-original {
@@ -228,6 +274,44 @@
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-sm);
+  }
+
+  /* Toast notification above bottom nav */
+  .toast-container {
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    left: var(--space-md);
+    right: var(--space-md);
+    align-items: center;
+  }
+
+  .toast {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Synthesis floating bar on mobile */
+  .synthesis-bar {
+    left: 50% !important;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+    width: calc(100% - 24px);
+    max-width: calc(100% - 24px);
+    padding: 8px 12px;
+    flex-direction: column;
+    gap: 8px;
+    box-sizing: border-box;
+  }
+
+  .synthesis-actions {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    overflow-x: auto;
+    gap: 4px;
+    scrollbar-width: none;
+  }
+  .synthesis-actions::-webkit-scrollbar {
+    display: none;
   }
 
   /* Modal */

@@ -45,6 +45,39 @@
   overflow: hidden;
 }
 
+.sidebar-collapse-btn {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-collapse-btn:hover {
+  background: var(--bg-hover);
+  color: var(--primary);
+  border-color: var(--primary-lighter);
+}
+
+.sidebar.collapsed .sidebar-collapse-btn {
+  display: none !important;
+}
+
+@media (max-width: 1024px) {
+  .sidebar-collapse-btn {
+    display: none !important;
+  }
+}
+
 .logo-title {
   font-size: 1rem;
   font-weight: 800;
@@ -345,39 +378,8 @@
   color: var(--text-muted);
 }
 
-/* ========================================
-   Collapsed sidebar (icon-only mode)
-   ======================================== */
-.sidebar.collapsed {
-  width: var(--sidebar-collapsed, 72px);
-}
-
-.sidebar.collapsed .logo-text,
-.sidebar.collapsed .logo-subtitle,
-.sidebar.collapsed .nav-section-title,
-.sidebar.collapsed .nav-item span,
-.sidebar.collapsed .nav-badge,
-.sidebar.collapsed .sidebar-footer-content,
-.sidebar.collapsed #sidebar-user {
-  display: none !important;
-}
-
-.sidebar.collapsed .sidebar-logo {
-  padding: var(--space-md) var(--space-sm);
-  justify-content: center;
-}
-
-.sidebar.collapsed .nav-item {
-  justify-content: center;
-  padding: 12px;
-}
-
-.sidebar.collapsed .sidebar-footer {
-  padding: var(--space-sm);
-  align-items: center;
-}
-
-/* Tablet Breakpoint (769px–1024px) */
+/* Collapsed sidebar (icon-only mode) & Tablet Breakpoint */
+.sidebar.collapsed,
 @media (min-width: 769px) and (max-width: 1024px) {
   .sidebar {
     width: var(--sidebar-collapsed, 72px);
@@ -401,5 +403,10 @@
   .sidebar .nav-item {
     justify-content: center;
     padding: 12px;
+  }
+
+  .sidebar .sidebar-footer {
+    padding: var(--space-sm);
+    align-items: center;
   }
 }

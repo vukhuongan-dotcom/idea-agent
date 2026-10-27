@@ -42,36 +42,20 @@ var Store = {
         changed = true;
       }
 
-      // 2.2: Quét khởi động: phát hiện ID trùng lặp, cấp lại ID cho bản ghi mới hơn (giữ createdAt nguyên vẹn)
       if (Array.isArray(data.ideas)) {
-        const seenIds = new Set();
-        let hasDuplicate = false;
-        // Duyệt từ cũ đến mới (reverse) để giữ ID cho bản ghi cũ hơn
+        const seen = new Set();
         for (let i = data.ideas.length - 1; i >= 0; i--) {
           const item = data.ideas[i];
-          if (!item.id || seenIds.has(item.id)) {
-            hasDuplicate = true;
-            const itemDate = item.createdAt ? new Date(item.createdAt) : new Date();
-            const dateStr = this.formatDateId(itemDate);
+          if (!item.id || seen.has(item.id)) {
+            const dateStr = this.formatDateId(item.createdAt || new Date());
             let maxNum = 0;
-            for (const existingId of seenIds) {
-              if (existingId.startsWith(dateStr + '-')) {
-                const num = parseInt(existingId.split('-').pop(), 10);
-                if (!isNaN(num) && num > maxNum) maxNum = num;
-              }
-            }
-            const newId = `${dateStr}-${String(maxNum + 1).padStart(3, '0')}`;
-            item.id = newId;
-            seenIds.add(newId);
+            seen.forEach(id => {
+              if (id.startsWith(dateStr + '-')) maxNum = Math.max(maxNum, parseInt(id.split('-').pop(), 10) || 0);
+            });
+            item.id = `${dateStr}-${String(maxNum + 1).padStart(3, '0')}`;
             changed = true;
-          } else {
-            seenIds.add(item.id);
           }
-        }
-        if (hasDuplicate && typeof Utils !== 'undefined' && Utils.showToast) {
-          setTimeout(() => {
-            Utils.showToast('⚠️ Đã tự động xử lý ID trùng lặp để bảo toàn dữ liệu', 'warning');
-          }, 500);
+          seen.add(item.id);
         }
       }
 
@@ -123,17 +107,13 @@ var Store = {
   generateId(date) {
     const dateStr = this.formatDateId(date);
     const ideas = this.getData().ideas || [];
-    const dayIdeas = ideas.filter(i => i.id && i.id.startsWith(dateStr + '-'));
     let maxNum = 0;
-    dayIdeas.forEach(i => {
-      const parts = i.id.split('-');
-      const num = parseInt(parts[parts.length - 1], 10);
-      if (!isNaN(num) && num > maxNum) {
-        maxNum = num;
+    ideas.forEach(i => {
+      if (i.id?.startsWith(dateStr + '-')) {
+        maxNum = Math.max(maxNum, parseInt(i.id.split('-').pop(), 10) || 0);
       }
     });
-    const nextNum = maxNum + 1;
-    return `${dateStr}-${String(nextNum).padStart(3, '0')}`;
+    return `${dateStr}-${String(maxNum + 1).padStart(3, '0')}`;
   },
 
   // Format date for ID: YYYY-MM-DD
@@ -210,6 +190,42 @@ var Store = {
     this.save(data);
   },
 
+  // Batch update multiple ideas
+  batchUpdate(ids, updates) {
+    if (!Array.isArray(ids) || !ids.length) return [];
+    const data = this.getData();
+    const idSet = new Set(ids);
+    const updated = [];
+    const now = new Date().toISOString();
+
+    data.ideas.forEach(idea => {
+      if (idSet.has(idea.id)) {
+        Object.assign(idea, updates, { updatedAt: now });
+        updated.push(idea);
+      }
+    });
+
+    this.save(data);
+    return updated;
+  },
+
+  // Link two ideas bidirectionally
+  linkIdeas(idA, idB) {
+    if (!idA || !idB || idA === idB) return;
+    const data = this.getData();
+    const ideaA = data.ideas.find(i => i.id === idA);
+    const ideaB = data.ideas.find(i => i.id === idB);
+    if (!ideaA || !ideaB) return;
+
+    if (!Array.isArray(ideaA.linkedIdeas)) ideaA.linkedIdeas = [];
+    if (!Array.isArray(ideaB.linkedIdeas)) ideaB.linkedIdeas = [];
+
+    if (!ideaA.linkedIdeas.includes(idB)) ideaA.linkedIdeas.push(idB);
+    if (!ideaB.linkedIdeas.includes(idA)) ideaB.linkedIdeas.push(idA);
+
+    this.save(data);
+  },
+
   // Add draft to idea
   addDraft(ideaId, draftContent) {
     const data = this.getData();
@@ -252,17 +268,43 @@ var Store = {
 
     // Filter by status
     if (options.status && options.status !== 'all') {
-      ideas = ideas.filter(i => i.status === options.status || i.status.startsWith(options.status));
+      if (options.status === 'has_draft' || options.status === 'draft') {
+        ideas = ideas.filter(i => (i.drafts && i.drafts.length > 0) || (i.status && i.status.startsWith('draft')));
+      } else {
+        ideas = ideas.filter(i => i.status === options.status || (i.status && i.status.startsWith(options.status)));
+      }
+    }
+
+    // Filter by tag
+    if (options.tag && options.tag.trim()) {
+      const targetTag = options.tag.trim().toLowerCase().replace(/^#/, '');
+      ideas = ideas.filter(i => Array.isArray(i.tags) && i.tags.some(t => t.toLowerCase().replace(/^#/, '') === targetTag));
+    }
+
+    // Filter by dateRange: today, week, month
+    if (options.dateRange && options.dateRange !== 'all') {
+      const now = new Date();
+      if (options.dateRange === 'today') {
+        const todayStr = this.formatDateId(now);
+        ideas = ideas.filter(i => i.id && i.id.startsWith(todayStr));
+      } else if (options.dateRange === 'week') {
+        const weekAgo = new Date(now.getTime() - 7 * 86400000);
+        ideas = ideas.filter(i => new Date(i.createdAt) >= weekAgo);
+      } else if (options.dateRange === 'month') {
+        const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        ideas = ideas.filter(i => i.id && i.id.startsWith(monthStr));
+      }
     }
 
     // Search text
     if (options.search) {
-      const q = options.search.toLowerCase();
+      const q = options.search.toLowerCase().trim();
       ideas = ideas.filter(i =>
-        i.title.toLowerCase().includes(q) ||
-        i.summary.toLowerCase().includes(q) ||
-        i.content.toLowerCase().includes(q) ||
-        i.tags.some(t => t.toLowerCase().includes(q))
+        (i.title && i.title.toLowerCase().includes(q)) ||
+        (i.summary && i.summary.toLowerCase().includes(q)) ||
+        (i.content && i.content.toLowerCase().includes(q)) ||
+        (Array.isArray(i.tags) && i.tags.some(t => t.toLowerCase().includes(q))) ||
+        (i.id && i.id.toLowerCase().includes(q))
       );
     }
 
@@ -271,7 +313,9 @@ var Store = {
       ideas.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     } else if (options.sort === 'priority') {
       const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-      ideas.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+      ideas.sort((a, b) => (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4));
+    } else if (options.sort === 'drafts') {
+      ideas.sort((a, b) => (b.drafts?.length || 0) - (a.drafts?.length || 0));
     } else {
       // Default: newest first
       ideas.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));

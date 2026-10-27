@@ -82,8 +82,14 @@
   box-shadow: 0 0 0 3px rgba(255,255,255,0.1);
 }
 
+.quick-capture-buttons {
+  display: flex;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
 .quick-capture-btn {
-  padding: 10px 20px;
+  padding: 10px 18px;
   min-height: 44px;
   background: white;
   color: var(--primary-dark);
@@ -95,10 +101,9 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 6px;
   transition: all var(--transition-fast);
   white-space: nowrap;
-  flex-shrink: 0;
   box-sizing: border-box;
 }
 
@@ -109,6 +114,86 @@
 
 .quick-capture-btn:active {
   transform: scale(0.97);
+}
+
+.quick-capture-more-btn {
+  padding: 10px 14px;
+  min-height: 44px;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: var(--radius-lg);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.quick-capture-more-btn:hover {
+  background: rgba(255,255,255,0.3);
+  border-color: rgba(255,255,255,0.5);
+}
+
+/* Quick metadata bar */
+.quick-capture-meta-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: 8px;
+  padding: 4px 0;
+}
+
+.quick-pill-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.quick-pill-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.75);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: 2px;
+}
+
+.quick-pill {
+  padding: 4px 10px;
+  min-height: 32px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.85);
+  font-size: 0.74rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+.quick-pill:hover {
+  background: rgba(255,255,255,0.2);
+  color: white;
+}
+
+.quick-pill.active {
+  background: white;
+  color: var(--primary-dark);
+  font-weight: 700;
+  border-color: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .quick-capture-hint {
