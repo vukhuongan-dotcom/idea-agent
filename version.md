@@ -13,20 +13,23 @@ Các nhóm phân loại hợp lệ: `Added`, `Changed`, `Deprecated`, `Removed`,
 - [FEAT-007] Kế hoạch bộ xuất file Word .docx chuẩn thể thức hành chính Nghị định 30 & Bệnh viện Bình Dân.
 - [FEAT-008] Kế hoạch hoàn thiện hạ tầng Service Worker & Offline PWA.
 
+### Fixed
+- [BUG-007] Khắc phục lỗi ký tự escape trong `version.md` và cách ly 2 symlink ngoại vi trong `node_modules/` theo hậu kiểm `Rule v2:R47 v2.2`.
+
 ## [2.1.0] - 2026-10-27
 
 ### Fixed
-- [BUG-001] Khắc phục triệt để lỗi selector gộp tại `sidebar.css` gây đè nội dung trên iPad (820px, 1024px); khôi phục nút mở lại `»` kích thước $ge 44$px.
+- [BUG-001] Khắc phục triệt để lỗi selector gộp tại `sidebar.css` gây đè nội dung trên iPad (820px, 1024px); khôi phục nút mở lại `»` kích thước ≥ 44px.
 - [BUG-002] Khắc phục nuốt lỗi hạn ngạch `QuotaExceededError` trong `Store.save()`; thêm thanh đo dung lượng bộ nhớ tại Cài đặt.
 - [BUG-003] Sửa lỗi đè trạng thái `reviewed`/`archived` thành `draft_vN`; chuẩn hóa trạng thái phát triển thành `developing`.
 - [BUG-004] Ngăn chặn xóa mất liên kết cũ ngoài top 15 trong Modal Chỉnh sửa; dọn dẹp liên kết 2 chiều khi xóa ý tưởng.
-- [BUG-005] Khắc phục tái dùng ID đã xóa bằng bộ đếm tăng đơn điệu theo ngày (`stats.seq[YYYY-MM-DD]`).
+- [BUG-005] Khắc phục tái dùng ID đã xóa bằng bộ đếm tăng đơn điệu theo ngày (`stats.seq[<ngay_iso>]` (ví dụ `stats.seq["2026-10-27"]`)).
 - [BUG-006] Khắc phục AI cắt cụt văn bản ở 1.000 ký tự; bám sát phiên bản bản thảo đang xem.
 
 ### Changed
-- [FEAT-003] Tái cấu trúc giao diện di động $le 768$px: Hero Capture $le 220$px, thẻ Timeline 1 cột gọn gàng $le 140$px, gom tác vụ vào menu `⋯`, thanh AI dính đáy kết hợp Bottom Nav.
-- [FEAT-004] Tìm kiếm không dấu tiếng Việt (NFD + `đ/Đ` $ightarrow$ `d/D`); danh sách phẳng khi sắp xếp theo ưu tiên; bộ lọc ngày tháng linh hoạt; bộ bóc tách cú pháp thông minh bảo toàn email và phân biệt `\bAI\b`.
-- [SEC-001] Nâng cấp tương phản màu chữ `--text-muted` đạt chuẩn WCAG AA $ge 4.5:1$; 100% phần tử tương tác $ge 24$px và đạt chuẩn cảm ứng $ge 40$px trên mobile.
+- [FEAT-003] Tái cấu trúc giao diện di động ≤ 768px: Hero Capture ≤ 220px, thẻ Timeline 1 cột gọn gàng ≤ 140px, gom tác vụ vào menu `⋯`, thanh AI dính đáy kết hợp Bottom Nav.
+- [FEAT-004] Tìm kiếm không dấu tiếng Việt (NFD + `đ/Đ` → `d/D`); danh sách phẳng khi sắp xếp theo ưu tiên; bộ lọc ngày tháng linh hoạt; bộ bóc tách cú pháp thông minh bảo toàn email và phân biệt `\bAI\b`.
+- [SEC-001] Nâng cấp tương phản màu chữ `--text-muted` đạt chuẩn WCAG AA ≥ 4.5:1; 100% phần tử tương tác ≥ 24px và đạt chuẩn cảm ứng ≥ 40px trên mobile.
 
 ## [2.0.0] - 2026-10-27
 
